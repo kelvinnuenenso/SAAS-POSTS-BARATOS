@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PostsBaratos | Micro-influenciadores, Resultados Reais</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              brand: {
+                black: '#0A0A0A',      // Preto Premium
+                dark: '#111111',       // Variação Dark
+                gray: '#F5F5F7',       // Cinza UX (Backgrounds claros)
+                blue: '#005CFF',       // Azul Royal Tech (Primary)
+                blueLight: '#4DA3FF',  // Azul Claro
+                neon: '#0084FF',       // Azul Neon CTA
+                yellow: '#FFD500',     // Amarelo Onboarding/Conversion
+                white: '#FFFFFF',      // Branco Premium
+                slate: '#94a3b8'
+              }
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+      body { font-family: 'Inter', sans-serif; background-color: #0A0A0A; color: #FFFFFF; }
+      .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.05); }
+      .light-glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(0, 0, 0, 0.05); }
+      .gradient-text { background: linear-gradient(to right, #FFFFFF, #4DA3FF); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+      .glow { box-shadow: 0 0 20px rgba(0, 92, 255, 0.25); }
+      
+      /* Onboarding Specifics */
+      .progress-bar { transition: width 0.3s ease-in-out; }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.1/",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/"
+  }
+}
+</script>
+</head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
