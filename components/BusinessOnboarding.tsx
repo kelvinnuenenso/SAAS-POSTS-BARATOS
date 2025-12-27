@@ -9,11 +9,12 @@ interface BusinessOnboardingProps {
 }
 
 export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({ onFinish }) => {
-  const { updateUser, currentUser } = useApp();
+  const { updateUser, currentUser, uploadFile } = useApp();
   const [step, setStep] = useState(1);
   const totalSteps = 12;
   const [isCustomSector, setIsCustomSector] = useState(false);
-  const [logoUploaded, setLogoUploaded] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   
   const [errors, setErrors] = useState<{[key: string]: string}>({});
 
@@ -75,6 +76,23 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({ onFinish
       updateCompanyProfile(key, [...current, item]);
     }
     clearError(key as string);
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !currentUser) return;
+
+    setIsUploading(true);
+    try {
+      const url = await uploadFile(file, `${currentUser.id}/logos`);
+      updateCompanyProfile('logoUrl', url);
+      setFormData(prev => ({ ...prev, avatarUrl: url }));
+    } catch (error) {
+      console.error('Erro ao fazer upload do logo:', error);
+      alert('Erro ao fazer upload do logo. Tente novamente.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSectorChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -330,16 +348,30 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({ onFinish
                <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><Image className="text-brand-yellow"/> Logo da Empresa</h2>
                <p className="text-gray-500 text-sm mb-6">Isso ajuda os influenciadores a reconhecerem sua marca. (Opcional)</p>
                
+               <input 
+                 type="file" 
+                 ref={fileInputRef} 
+                 onChange={handleLogoUpload} 
+                 accept="image/*" 
+                 className="hidden" 
+               />
+
                <div 
-                  onClick={() => {
-                     setLogoUploaded(!logoUploaded);
-                  }}
-                  className={`border-2 border-dashed rounded-xl p-12 text-center bg-gray-50 hover:bg-white transition-colors cursor-pointer group ${logoUploaded ? 'border-green-400 bg-green-50' : 'border-gray-300'}`}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-12 text-center bg-gray-50 hover:bg-white transition-colors cursor-pointer group ${formData.companyProfile?.logoUrl ? 'border-green-400 bg-green-50' : 'border-gray-300'}`}
                >
-                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform">
-                     {logoUploaded ? <CheckCircle className="w-10 h-10 text-green-500" /> : <Building className="w-10 h-10 text-gray-400" />}
+                  <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm group-hover:scale-110 transition-transform overflow-hidden">
+                     {isUploading ? (
+                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-yellow"></div>
+                     ) : formData.companyProfile?.logoUrl ? (
+                       <img src={formData.companyProfile.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                     ) : (
+                       <Building className="w-10 h-10 text-gray-400" />
+                     )}
                   </div>
-                  <p className="font-bold text-gray-700">{logoUploaded ? 'Logo Recebido!' : 'Clique para enviar seu logo'}</p>
+                  <p className="font-bold text-gray-700">
+                    {isUploading ? 'Enviando...' : formData.companyProfile?.logoUrl ? 'Logo Enviado!' : 'Clique para enviar seu logo'}
+                  </p>
                   <p className="text-xs text-gray-400 mt-1">PNG ou JPG (Transparente preferível)</p>
                </div>
             </div>
@@ -574,43 +606,50 @@ export const BusinessOnboarding: React.FC<BusinessOnboardingProps> = ({ onFinish
 
           {step === 10 && (
             <div className="p-8 animate-in fade-in slide-in-from-right-4">
-               <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><MessageSquare className="text-brand-yellow"/> Contato *</h2>
-               <p className="text-gray-500 text-sm mb-6">Quem os influenciadores devem procurar?</p>
+               <h2 className="text-2xl font-bold mb-2 flex items-center gap-2"><MessageSquare className="text-brand-yellow"/> Dados de Contato do Responsável</h2>
+               <p className="text-gray-500 text-sm mb-6">
+                 Estes dados não serão visíveis no sistema aos usuários e sim dados da plataforma <strong>POSTS BARATOS</strong>.
+               </p>
                
                <div className="space-y-4">
                   <div>
                      <label className="block text-sm font-bold text-gray-700 mb-1">Nome do Responsável *</label>
                      <input 
-                        type="text" 
-                        className={getInputClass('contact.responsibleName')} 
-                        placeholder="Seu nome" 
-                        onChange={(e) => updateNestedProfile('contact', 'responsibleName', e.target.value)}
+                       type="text" 
+                       value={formData.companyProfile?.contact?.responsibleName || ''} 
+                       onChange={(e) => updateNestedProfile('contact', 'responsibleName', e.target.value)}
+                       className={getInputClass('contact.responsibleName')}
+                       placeholder="Quem cuidará das campanhas?"
                      />
                      <ErrorMsg id="contact.responsibleName" />
                   </div>
                   <div>
                      <label className="block text-sm font-bold text-gray-700 mb-1">Email Comercial *</label>
                      <input 
-                        type="email" 
-                        className={getInputClass('contact.email')} 
-                        placeholder="contato@empresa.com" 
-                        onChange={(e) => updateNestedProfile('contact', 'email', e.target.value)}
+                       type="email" 
+                       value={formData.companyProfile?.contact?.email || ''} 
+                       onChange={(e) => updateNestedProfile('contact', 'email', e.target.value)}
+                       className={getInputClass('contact.email')}
+                       placeholder="contato@empresa.com"
                      />
                      <ErrorMsg id="contact.email" />
                   </div>
                   <div>
-                     <label className="block text-sm font-bold text-gray-700 mb-1">WhatsApp (Opcional)</label>
+                     <label className="block text-sm font-bold text-gray-700 mb-1">WhatsApp do Responsável (Obrigatório)</label>
                      <input 
-                        type="text" 
-                        className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 outline-none focus:ring-2 focus:ring-brand-yellow" 
-                        placeholder="(00) 00000-0000" 
-                        onChange={(e) => updateNestedProfile('contact', 'whatsapp', e.target.value)}
+                       type="text" 
+                       value={formData.companyProfile?.contact?.whatsapp || ''} 
+                       onChange={(e) => updateNestedProfile('contact', 'whatsapp', e.target.value)}
+                       className={getInputClass('contact.whatsapp')}
+                       placeholder="(00) 00000-0000"
                      />
+                     <ErrorMsg id="contact.whatsapp" />
                   </div>
-                  
-                  <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                     <input type="checkbox" className="w-5 h-5 text-brand-yellow" onChange={(e) => updateNestedProfile('contact', 'allowDirectContact', e.target.checked)}/>
-                     <p className="text-xs text-gray-500 font-medium">Permitir que influenciadores entrem em contato direto (fora da plataforma).</p>
+                  <div className="p-4 bg-yellow-50 border border-brand-yellow/20 rounded-lg">
+                    <p className="text-xs text-brand-black leading-relaxed font-medium">
+                      🔒 <strong>Privacidade:</strong> A POSTS BARATOS utiliza esses dados apenas para suporte, faturamento e avisos. 
+                      Estes dados <strong>não estão visíveis</strong> para influenciadores ou outros usuários.
+                    </p>
                   </div>
                </div>
             </div>

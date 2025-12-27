@@ -4,7 +4,19 @@ export enum UserRole {
   ADMIN = 'ADMIN'
 }
 
-export type OrderStatus = 'PENDING' | 'IN_PROGRESS' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED';
+export type UserRoleType = UserRole;
+
+export type ServiceType = 
+  | 'Story' 
+  | 'Reels' 
+  | 'Feed' 
+  | 'Combo Stories' 
+  | 'TikTok Video' 
+  | 'Shorts' 
+  | 'Long Video' 
+  | 'Tweet';
+
+export type OrderStatus = 'PENDING' | 'IN_PROGRESS' | 'DELIVERED' | 'COMPLETED' | 'CANCELLED' | 'REJECTED';
 
 export interface CompanyProfile {
   // Basic
@@ -51,7 +63,6 @@ export interface CompanyProfile {
     responsibleName?: string;
     position?: string;
     preferredTime?: string;
-    allowDirectContact?: boolean;
   };
 }
 
@@ -73,6 +84,7 @@ export interface User {
   balance: number;
   onboardingCompleted: boolean; // MANDATORY: Controls the flow
   companyProfile?: CompanyProfile;
+  status?: 'ACTIVE' | 'SUSPENDED';
 }
 
 export interface Influencer extends User {
@@ -111,7 +123,6 @@ export interface Influencer extends User {
     avgLikes?: number;
     engagementRateManual?: number; // If API fails
     brandsWorkedWith?: string[];
-    portfolioUrls?: string[];
     mediaKitUrl?: string;
   };
 
@@ -163,11 +174,12 @@ export interface Influencer extends User {
     document?: string; // CPF/CNPJ
   };
   
+  portfolio?: string[];
+
   // 9. Contact Settings
   contactSettings?: {
     publicEmail?: string;
     whatsapp?: string;
-    allowDirectContact?: boolean;
   };
 }
 
@@ -217,7 +229,9 @@ export interface CampaignConfig {
   forbiddenContent: string;
 }
 
-export enum PlanType {
-  INFLUENCER = 'INFLUENCER',
-  BUSINESS = 'BUSINESS'
-}
+export const PlanType = {
+  INFLUENCER: 'INFLUENCER',
+  BUSINESS: 'BUSINESS'
+} as const;
+
+export type PlanType = (typeof PlanType)[keyof typeof PlanType];

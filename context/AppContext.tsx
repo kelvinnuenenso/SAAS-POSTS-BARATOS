@@ -1,273 +1,495 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { User, Influencer, Order, Message, UserRole } from '../types';
-
-// Mock Data
-const MOCK_INFLUENCERS: Influencer[] = [
-  { 
-    id: 'inf1', 
-    name: 'Ana Silva', 
-    email: 'ana@email.com', 
-    role: UserRole.INFLUENCER, 
-    handle: '@anasilva.fit', 
-    niche: 'Fitness', 
-    followers: 24000, 
-    engagementRate: 4.5, 
-    pricePerPost: 80, 
-    pricePerReel: 150, 
-    avatarUrl: 'https://picsum.photos/100/100?random=1', 
-    rating: 4.8, 
-    verified: true, 
-    balance: 450, 
-    bio: 'Dicas de treino e alimentação saudável para mulheres reais. Foco em vida saudável sem neuras.', 
-    platform: 'Instagram', 
-    sizeCategory: 'Micro',
-    onboardingCompleted: true, // Already onboarded
-    // Expanded Profile Mock
-    artisticName: 'Ana Fit',
-    secondaryNiches: ['Saúde', 'Lifestyle', 'Nutrição'],
-    socialHandles: { instagram: '@anasilva.fit', tiktok: '@anafit_tiktok', youtube: '@anafit_channel' },
-    languages: ['Português', 'Inglês Básico'],
-    location: { city: 'São Paulo', state: 'SP', country: 'Brasil' },
-    gender: 'Feminino',
-    metrics: {
-      followersByPlatform: { instagram: 24000, tiktok: 12000, youtube: 3000 },
-      avgReach: { reels: 8500, stories: 1200, feed: 3000 },
-      avgViews: 5000,
-      avgLikes: 800,
-      engagementRateManual: 4.5,
-      brandsWorkedWith: ['Nike', 'Growth', 'Insider'],
-      portfolioUrls: ['https://picsum.photos/200/300?random=10', 'https://picsum.photos/200/300?random=11', 'https://picsum.photos/200/300?random=12']
-    },
-    services: [
-      { id: 's1', platform: 'Instagram', format: 'Story', price: 80, negotiable: true },
-      { id: 's2', platform: 'Instagram', format: 'Reels', price: 150, promoPrice: 130, negotiable: false },
-      { id: 's3', platform: 'Instagram', format: 'Combo Stories', price: 200, negotiable: true },
-    ],
-    audienceData: {
-      location: 'São Paulo, SP',
-      ageRange: '25-34',
-      topInterests: ['Academia', 'Dietas', 'Moda Esportiva'],
-      genderSplit: { male: 20, female: 80 },
-      estimatedClass: 'B'
-    },
-    contentStyle: {
-      tone: 'Motivacional',
-      aesthetic: 'Clean e Minimalista',
-      productionFrequency: '5x por semana',
-      editingLevel: 'Média',
-      favoriteFormats: ['Reels de Treino', 'Vlog Diário']
-    },
-    schedule: {
-      daysAvailable: ['Segunda', 'Quarta', 'Sexta'],
-      standardDeliveryTime: '48h',
-      busyMode: false,
-      maxMonthlyCapacity: 20,
-      availabilityType: 'Paid',
-      preferredContactTime: 'Morning'
-    },
-    rules: {
-      noGoContent: ['Bebidas Alcoólicas', 'Jogos de Azar'],
-      blockedNiches: ['Apostas', 'Política'],
-      forbiddenWords: ['Milagre', 'Emagrecimento Rápido'],
-      revisionPolicy: '1 revisão gratuita inclusa',
-      maxRevisions: 2
-    },
-    paymentInfo: {
-      pixKey: 'ana@email.com',
-      bankAccount: 'Nubank - Ag 0001 cc 12345-6',
-      document: '***.***.***-**'
-    },
-    contactSettings: {
-      publicEmail: 'contato@anasilva.com',
-      whatsapp: '(11) 99999-9999',
-      allowDirectContact: true
-    }
-  },
-  { id: 'inf2', name: 'João Tech', email: 'joao@email.com', role: UserRole.INFLUENCER, handle: '@joaotech_review', niche: 'Tecnologia', followers: 12500, engagementRate: 6.2, pricePerPost: 120, pricePerReel: 250, avatarUrl: 'https://picsum.photos/100/100?random=2', rating: 5.0, verified: true, balance: 1200, bio: 'Reviews sinceros de gadgets e setup.', platform: 'YouTube', sizeCategory: 'Micro', onboardingCompleted: true, location: { city: 'Curitiba', state: 'PR', country: 'Brasil' }, services: [{ id: 's4', platform: 'YouTube', format: 'Long Video', price: 500, negotiable: true }] },
-  { id: 'inf3', name: 'Mariana Beauty', email: 'mari@email.com', role: UserRole.INFLUENCER, handle: '@marimakeup', niche: 'Beleza', followers: 45000, engagementRate: 3.1, pricePerPost: 200, pricePerReel: 350, avatarUrl: 'https://picsum.photos/100/100?random=3', rating: 4.7, verified: false, balance: 800, bio: 'Tutoriais de maquiagem artística e skincare.', platform: 'TikTok', sizeCategory: 'Mid', onboardingCompleted: true, location: { city: 'Rio de Janeiro', state: 'RJ', country: 'Brasil' } },
-];
-
-// Initialize Mock Business with structure for onboarding
-const MOCK_BUSINESS: User = {
-  id: 'biz1',
-  name: 'Empresa X',
-  email: 'contato@empresax.com',
-  role: UserRole.BUSINESS,
-  avatarUrl: '',
-  balance: 0,
-  onboardingCompleted: false, // Default is false, will force flow
-  companyProfile: {
-    description: "Somos uma startup de moda sustentável focada em peças de algodão orgânico.",
-    niche: ['Moda', 'Sustentabilidade'],
-    size: 'Pequena',
-    website: "www.empresax.com.br",
-    cnpj: "00.000.000/0001-00",
-    sector: "Varejo",
-    location: { city: "São Paulo", state: "SP" },
-    logoUrl: "",
-    objectives: ['Aumentar Vendas', 'Awareness / Branding'],
-    targetAudience: {
-      ageRange: "25-34 anos",
-      gender: "Female",
-      interests: ["Moda Consciente", "Natureza", "Yoga"]
-    },
-    budget: {
-      monthly: 5000,
-      priceRange: "R$150 - R$300",
-      acceptsNegotiation: true
-    },
-    desiredDeliverables: ['Reels / TikTok', 'Stories (24h)'],
-    influencerPreferences: {
-      type: "Influencer",
-      audienceSize: ["Micro (10k - 100k)"]
-    },
-    contact: {
-      responsibleName: "Carlos Gerente",
-      email: "carlos@empresax.com",
-      whatsapp: "(11) 98888-8888",
-      allowDirectContact: false
-    }
-  }
-};
-
-const MOCK_BUSINESSES: User[] = [MOCK_BUSINESS];
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { User, Influencer, Order, Message, UserRole, ServiceType } from '../types';
+import { supabase } from './supabaseClient';
 
 interface AppContextType {
   currentUser: User | Influencer | null;
   influencers: Influencer[];
   orders: Order[];
   messages: Message[];
+  loading: boolean;
   login: (role: UserRole) => Promise<User>;
   logout: () => void;
-  createOrder: (influencerId: string, serviceType: 'Story' | 'Reels', amount: number, briefing: string) => void;
-  updateOrderStatus: (orderId: string, status: Order['status'], deliveryUrl?: string) => void;
-  sendMessage: (orderId: string, text: string) => void;
-  updateUser: (data: Partial<User | Influencer>) => void;
-  getBusinessById: (id: string) => User | undefined;
+  createOrder: (influencerId: string, serviceType: 'Story' | 'Reels' | 'Feed', amount: number, briefing: string) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: Order['status'], deliveryUrl?: string) => Promise<void>;
+  sendMessage: (orderId: string, text: string) => Promise<void>;
+  updateUser: (data: Partial<User | Influencer>) => Promise<void>;
+  uploadFile: (file: File, path: string) => Promise<string>;
+  getBusinessById: (id: string) => Promise<User | undefined>;
+  fetchAllUsers: () => Promise<(User | Influencer)[]>;
 }
 
 const AppContext = createContext<AppContextType>({} as AppContextType);
 
+// Helper function for consistent profile formatting
+const formatUserProfile = (userData: any): User | Influencer => {
+  const formatted: any = {
+    ...userData,
+    companyProfile: userData.company_profile,
+    onboardingCompleted: userData.onboarding_completed,
+    avatarUrl: userData.avatar_url,
+    pricePerPost: userData.price_per_post,
+    pricePerReel: userData.price_per_reel,
+    sizeCategory: userData.size_category,
+    engagementRate: userData.engagement_rate,
+    audienceData: userData.audience_data,
+    contentStyle: userData.content_style,
+    paymentInfo: userData.payment_info,
+    contactSettings: userData.contact_settings,
+    socialHandles: userData.social_handles,
+    secondaryNiches: userData.secondary_niches,
+    artisticName: userData.artistic_name,
+    portfolio: userData.portfolio || [],
+  };
+
+  // Clean up snake_case fields to keep state consistent
+  const snakeFields = [
+    'company_profile', 'onboarding_completed', 'avatar_url', 
+    'price_per_post', 'price_per_reel', 'size_category', 
+    'engagement_rate', 'audience_data', 'content_style', 
+    'payment_info', 'contact_settings', 'social_handles', 
+    'secondary_niches', 'artistic_name'
+  ];
+  
+  snakeFields.forEach(field => {
+    delete formatted[field];
+  });
+
+  return formatted as User | Influencer;
+};
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [currentUser, setCurrentUser] = useState<User | Influencer | null>(null);
-  const [influencers, setInfluencers] = useState<Influencer[]>(MOCK_INFLUENCERS);
+  const [influencers, setInfluencers] = useState<Influencer[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
-  // In a real app, businesses would be fetched
-  const [businesses, setBusinesses] = useState<User[]>(MOCK_BUSINESSES); 
+  const [loading, setLoading] = useState(true);
 
-  // Updated Login Function: Returns the User object for immediate routing decisions
-  const login = async (role: UserRole): Promise<User> => {
-    return new Promise((resolve) => {
-      let user: User | Influencer;
-
-      if (role === UserRole.BUSINESS) {
-        // For demo purposes, we always return the mock business (which has onboardingCompleted: false initially)
-        // In a real app, this would fetch from API
-        user = businesses[0];
-      } else {
-        // Create a FRESH un-onboarded influencer for testing the flow
-        user = {
-           id: `new-inf-${Date.now()}`,
-           name: '',
-           email: 'novo@influencer.com',
-           role: UserRole.INFLUENCER,
-           handle: '',
-           niche: '',
-           followers: 0,
-           engagementRate: 0,
-           pricePerPost: 0,
-           pricePerReel: 0,
-           rating: 0,
-           verified: false,
-           balance: 0,
-           bio: '',
-           platform: 'Instagram',
-           sizeCategory: 'Nano',
-           onboardingCompleted: false // TRIGGER ONBOARDING
-        };
-        // Add to list so data persists in session if they fill it out
-        setInfluencers(prev => [...prev, user as Influencer]);
+  // Initial load
+  useEffect(() => {
+    // Escuta mudanças na autenticação (login, logout, refresh de token)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log('Auth event:', event);
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      } else if (event === 'SIGNED_OUT') {
+        setCurrentUser(null);
+        localStorage.removeItem('pb_user');
       }
-      
-      setCurrentUser(user);
-      resolve(user);
     });
-  };
 
-  const logout = () => {
-    setCurrentUser(null);
-  };
+    fetchInitialData();
 
-  const updateUser = (data: Partial<User | Influencer>) => {
-     if (!currentUser) return;
-     const updatedUser = { ...currentUser, ...data };
-     
-     // Update local state
-     setCurrentUser(updatedUser as User | Influencer);
-     
-     // Update in global lists if necessary
-     if (updatedUser.role === UserRole.INFLUENCER) {
-        setInfluencers(prev => prev.map(inf => inf.id === currentUser.id ? (updatedUser as Influencer) : inf));
-     }
-     
-     // Update the Mock business reference for this session
-     if (updatedUser.role === UserRole.BUSINESS) {
-       setBusinesses(prev => prev.map(b => b.id === currentUser.id ? (updatedUser as User) : b));
-     }
-  };
+    // Iniciar Realtime Subscriptions
+    const ordersSubscription = supabase
+      .channel('public:orders')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, async (payload) => {
+        console.log('Order change detected:', payload);
+        if (currentUser) {
+          const newOrder = payload.new as any;
+          if (newOrder.business_id === currentUser.id || newOrder.influencer_id === currentUser.id) {
+            await fetchUserSpecificData(currentUser.id);
+          }
+        }
+      })
+      .subscribe();
 
-  const createOrder = (influencerId: string, serviceType: 'Story' | 'Reels', amount: number, briefing: string) => {
-    if (!currentUser) return;
-    
-    const newOrder: Order = {
-      id: `ord-${Date.now()}`,
-      businessId: currentUser.id,
-      influencerId,
-      serviceType,
-      amount,
-      status: 'PENDING',
-      briefing,
-      createdAt: new Date().toISOString()
+    const messagesSubscription = supabase
+      .channel('public:messages')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
+        console.log('New message detected:', payload);
+        if (currentUser) {
+          const newMsg = payload.new as any;
+          // Verificar se a mensagem pertence a um pedido do usuário atual
+          const { data: order } = await supabase.from('orders').select('business_id, influencer_id').eq('id', newMsg.order_id).single();
+          if (order && (order.business_id === currentUser.id || order.influencer_id === currentUser.id)) {
+            const formattedMsg: Message = {
+              ...newMsg,
+              orderId: newMsg.order_id,
+              senderId: newMsg.sender_id,
+              timestamp: newMsg.created_at
+            };
+            setMessages(prev => {
+              if (prev.find(m => m.id === formattedMsg.id)) return prev;
+              return [...prev, formattedMsg];
+            });
+          }
+        }
+      })
+      .subscribe();
+
+    return () => {
+      subscription.unsubscribe();
+      supabase.removeChannel(ordersSubscription);
+      supabase.removeChannel(messagesSubscription);
     };
-    
-    setOrders(prev => [newOrder, ...prev]);
-    
-    // Initial system message
-    sendMessage(newOrder.id, `PEDIDO CRIADO: ${serviceType} - R$ ${amount}. Aguardando aceite.`);
-  };
+  }, []);
 
-  const updateOrderStatus = (orderId: string, status: Order['status'], deliveryUrl?: string) => {
-    setOrders(prev => prev.map(o => {
-      if (o.id === orderId) {
-        return { ...o, status, deliveryUrl: deliveryUrl || o.deliveryUrl };
+  const fetchUserProfile = useCallback(async (userId: string) => {
+    console.log('fetchUserProfile iniciado para:', userId);
+    try {
+      const { data: userData, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+      
+      if (error) {
+        console.error('Erro ao buscar perfil:', error);
+        return null;
       }
-      return o;
-    }));
 
-    if (status === 'IN_PROGRESS') sendMessage(orderId, 'Proposta aceita! Iniciando produção.');
-    if (status === 'DELIVERED') sendMessage(orderId, `Conteúdo entregue: ${deliveryUrl}`);
-    if (status === 'COMPLETED') sendMessage(orderId, 'Pedido aprovado e finalizado! Pagamento liberado.');
-  };
+      if (userData) {
+        if (userData.status === 'SUSPENDED') {
+          await logout();
+          throw new Error('Sua conta foi suspensa pela administração.');
+        }
 
-  const sendMessage = (orderId: string, text: string) => {
+        const formattedUser = formatUserProfile(userData);
+        setCurrentUser(formattedUser);
+        localStorage.setItem('pb_user', JSON.stringify(formattedUser));
+        fetchUserSpecificData(userData.id).catch(err => console.error('Erro ao buscar dados específicos:', err));
+        return formattedUser;
+      }
+    } catch (error) {
+      console.error('Erro fatal em fetchUserProfile:', error);
+    }
+    return null;
+  }, []);
+
+  const fetchInitialData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const { data: infData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('role', UserRole.INFLUENCER);
+      
+      if (infData) {
+        setInfluencers(infData.map(inf => formatUserProfile(inf) as Influencer));
+      }
+
+      const storedUser = localStorage.getItem('pb_user');
+      if (storedUser) {
+        setCurrentUser(JSON.parse(storedUser));
+        setLoading(false);
+      }
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        await fetchUserProfile(session.user.id);
+      }
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchUserProfile]);
+
+  const fetchUserSpecificData = useCallback(async (userId: string) => {
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('*')
+      .or(`business_id.eq.${userId},influencer_id.eq.${userId}`)
+      .order('created_at', { ascending: false });
+
+    if (orderData) {
+      const formattedOrders = orderData.map(o => ({
+        ...o,
+        businessId: o.business_id,
+        influencerId: o.influencer_id,
+        serviceType: o.service_type,
+        deliveryUrl: o.delivery_url,
+        createdAt: o.created_at
+      }));
+      setOrders(formattedOrders);
+
+      if (formattedOrders.length > 0) {
+        const orderIds = formattedOrders.map(o => o.id);
+        const { data: msgData } = await supabase
+          .from('messages')
+          .select('*')
+          .in('order_id', orderIds)
+          .order('created_at', { ascending: true });
+        
+        if (msgData) {
+          setMessages(msgData.map(m => ({
+            ...m,
+            orderId: m.order_id,
+            senderId: m.sender_id,
+            timestamp: m.created_at
+          })));
+        }
+      }
+    }
+  }, []);
+
+  const login = useCallback(async (role: UserRole, email?: string, password?: string, fullName?: string): Promise<User> => {
+    setLoading(true);
+    try {
+      if (!email || !password) throw new Error('Email e senha são obrigatórios');
+
+      if (fullName) {
+        const finalRole = email === 'resultadoelevado@gmail.com' ? UserRole.ADMIN : role;
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { role: finalRole, full_name: fullName } }
+        });
+
+        if (signUpError) throw signUpError;
+        if (!signUpData.user) throw new Error('Falha no cadastro');
+        
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', signUpData.user.id)
+          .single();
+          
+        const formatted = profile ? formatUserProfile(profile) : {
+          id: signUpData.user.id,
+          email: signUpData.user.email,
+          role: finalRole,
+          name: fullName,
+          balance: 0,
+          onboarding_completed: false
+        } as User;
+
+        setCurrentUser(formatted);
+        localStorage.setItem('pb_user', JSON.stringify(formatted));
+        return formatted;
+      }
+
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) throw new Error('USER_NOT_FOUND');
+        throw signInError;
+      }
+
+      const authUser = signInData.user;
+      if (!authUser) throw new Error('Falha na autenticação');
+
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authUser.id)
+        .single();
+
+      if (!profile) {
+        const finalRole = (email === 'resultadoelevado@gmail.com' || authUser.email === 'resultadoelevado@gmail.com') ? UserRole.ADMIN : role;
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authUser.id,
+            email: authUser.email,
+            role: finalRole,
+            name: fullName || authUser.user_metadata?.full_name || '',
+            balance: 0,
+            onboarding_completed: false
+          }])
+          .select()
+          .single();
+        
+        if (createError) throw createError;
+        const formatted = formatUserProfile(newProfile);
+        setCurrentUser(formatted);
+        localStorage.setItem('pb_user', JSON.stringify(formatted));
+        return formatted;
+      }
+
+      if (profile.status === 'SUSPENDED') {
+        await logout();
+        throw new Error('Sua conta está suspensa.');
+      }
+
+      const formattedUser = formatUserProfile(profile);
+      setCurrentUser(formattedUser);
+      localStorage.setItem('pb_user', JSON.stringify(formattedUser));
+      return formattedUser as User;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const logout = useCallback(async () => {
+    await supabase.auth.signOut();
+    setCurrentUser(null);
+    localStorage.removeItem('pb_user');
+  }, []);
+
+  const updateUser = useCallback(async (data: Partial<User | Influencer>) => {
     if (!currentUser) return;
-    const newMessage: Message = {
-      id: `msg-${Date.now()}`,
-      orderId,
-      senderId: currentUser.id,
-      text,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, newMessage]);
-  };
 
-  const getBusinessById = (id: string) => {
-    return businesses.find(b => b.id === id);
-  };
+    const dbUpdate: any = { ...data };
+    // Map frontend fields to DB columns
+    const mapping: Record<string, string> = {
+      companyProfile: 'company_profile',
+      onboardingCompleted: 'onboarding_completed',
+      avatarUrl: 'avatar_url',
+      audienceData: 'audience_data',
+      contentStyle: 'content_style',
+      paymentInfo: 'payment_info',
+      contactSettings: 'contact_settings',
+      socialHandles: 'social_handles',
+      secondaryNiches: 'secondary_niches',
+      artisticName: 'artistic_name',
+      pricePerPost: 'price_per_post',
+      pricePerReel: 'price_per_reel',
+      sizeCategory: 'size_category',
+      engagementRate: 'engagement_rate',
+      portfolio: 'portfolio'
+    };
+
+    Object.keys(mapping).forEach(key => {
+      if (key in data) {
+        dbUpdate[mapping[key]] = (data as any)[key];
+        delete dbUpdate[key];
+      }
+    });
+
+    const { data: updated, error } = await supabase
+      .from('profiles')
+      .update(dbUpdate)
+      .eq('id', currentUser.id)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const formattedUser = formatUserProfile(updated);
+    setCurrentUser(formattedUser);
+    localStorage.setItem('pb_user', JSON.stringify(formattedUser));
+    
+    if (formattedUser.role === UserRole.INFLUENCER) {
+      setInfluencers(prev => prev.map(inf => inf.id === currentUser.id ? (formattedUser as Influencer) : inf));
+    }
+  }, [currentUser]);
+
+  const uploadFile = useCallback(async (file: File, path: string): Promise<string> => {
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `${path}/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('uploads')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage
+        .from('uploads')
+        .getPublicUrl(filePath);
+
+      return data.publicUrl;
+    } catch (error: any) {
+      console.error('Erro no upload:', error);
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+  }, []);
+
+  const createOrder = useCallback(async (influencerId: string, serviceType: ServiceType, amount: number, briefing: string) => {
+    if (!currentUser) return;
+    
+    const { data, error } = await supabase
+      .from('orders')
+      .insert([{
+        business_id: currentUser.id,
+        influencer_id: influencerId,
+        service_type: serviceType,
+        amount,
+        status: 'PENDING',
+        briefing
+      }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const formattedOrder: Order = {
+      ...data,
+      businessId: data.business_id,
+      influencerId: data.influencer_id,
+      serviceType: data.service_type,
+      createdAt: data.created_at
+    };
+
+    setOrders(prev => [formattedOrder, ...prev]);
+    await sendMessage(formattedOrder.id, `PEDIDO CRIADO: ${serviceType} - R$ ${amount}. Aguardando aceite.`);
+  }, [currentUser]);
+
+  const updateOrderStatus = useCallback(async (orderId: string, status: Order['status'], deliveryUrl?: string) => {
+    const { data, error } = await supabase
+      .from('orders')
+      .update({ status, delivery_url: deliveryUrl })
+      .eq('id', orderId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status, deliveryUrl: deliveryUrl || o.deliveryUrl } : o));
+
+    if (status === 'IN_PROGRESS') await sendMessage(orderId, 'Proposta aceita! Iniciando produção.');
+    if (status === 'DELIVERED') await sendMessage(orderId, `Conteúdo entregue: ${deliveryUrl}`);
+    if (status === 'COMPLETED') await sendMessage(orderId, 'Pedido aprovado e finalizado! Pagamento liberado.');
+  }, []);
+
+  const sendMessage = useCallback(async (orderId: string, text: string) => {
+    if (!currentUser) return;
+    
+    const { data, error } = await supabase
+      .from('messages')
+      .insert([{ order_id: orderId, sender_id: currentUser.id, text }])
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    const formattedMsg: Message = {
+      ...data,
+      orderId: data.order_id,
+      senderId: data.sender_id,
+      timestamp: data.created_at
+    };
+
+    setMessages(prev => [...prev, formattedMsg]);
+  }, [currentUser]);
+
+  const getBusinessById = useCallback(async (id: string) => {
+    const { data } = await supabase.from('profiles').select('*').eq('id', id).single();
+    return data ? formatUserProfile(data) : undefined;
+  }, []);
+
+  const fetchAllUsers = useCallback(async () => {
+    if (currentUser?.role !== UserRole.ADMIN) return [];
+    const { data, error } = await supabase.from('profiles').select('*');
+    if (error) return [];
+    return data.map(u => formatUserProfile(u));
+  }, [currentUser]);
 
   return (
-    <AppContext.Provider value={{ currentUser, influencers, orders, messages, login, logout, createOrder, updateOrderStatus, sendMessage, updateUser, getBusinessById }}>
+    <AppContext.Provider value={{ 
+      currentUser, 
+      influencers, 
+      orders, 
+      messages, 
+      loading,
+      login, 
+      logout, 
+      createOrder, 
+      updateOrderStatus, 
+      sendMessage, 
+      updateUser, 
+      uploadFile,
+      getBusinessById,
+      fetchAllUsers
+    }}>
       {children}
     </AppContext.Provider>
   );

@@ -7,7 +7,7 @@
 **Subheadline:** A plataforma #1 para pequenos negócios que querem viralizar sem gastar uma fortuna. Contrate perfis reais a partir de R$ 50,00 com segurança total.
 **CTA Primário:** Encontrar Influenciadores Agora
 **CTA Secundário:** Quero ser um Influenciador
-**Prova Social:** Mais de 12.000 posts entregues este mês.
+**Prova Social:** Crescendo a cada dia com parcerias de sucesso.
 
 ### 2. BLOCO "POR QUE EXISTE"
 Você está cansado de enviar directs e ser ignorado?
@@ -44,17 +44,6 @@ Sem pegadinhas. Sem contratos de 20 páginas.
 *   **Negócios Locais:** Restaurantes, Clínicas, Lojas de Rua.
 *   **Infoprodutores:** Prova social e distribuição de conteúdo.
 *   **Profissionais Liberais:** Advogados, Nutricionistas, Personal Trainers.
-
-### 7. DEPOIMENTOS
-> "Consegui 3 influenciadores de moda para minha loja gastando R$ 200 no total. Vendi R$ 1.500 só no dia dos posts." — *Ricardo M., Dono de Loja Virtual*
-
-> "Antes eu perdia dias negociando no direct. Aqui eu clico e compro. É como pedir comida no iFood." — *Carla S., Esteticista*
-
-> "Sou influenciadora pequena e odiava cobrar. O PostsBaratos resolveu minha vida, recebo direto na conta." — *Beatriz L., Micro-influenciadora*
-
-> "ROI absurdo. O público dos micros é muito mais fiel." — *Lucas F., Gestor de Tráfego*
-
-> "A segurança do pagamento só ser liberado após o post me deu coragem para testar. Não largo mais." — *Mariana G., Confeiteira*
 
 ### 8. PLANOS E PREÇOS
 

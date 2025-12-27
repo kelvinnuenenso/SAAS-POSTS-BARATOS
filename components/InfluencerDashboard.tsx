@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Card, Button, Badge, Modal, SectionBadge } from './UI';
-import { TrendingUp, DollarSign, CheckCircle, ShieldCheck, LayoutGrid, FileText, Camera, CreditCard, User as UserIcon, MessageSquare, Star, Sliders, Calendar, Edit, PieChart, AlertTriangle, Image, Target, Building, Globe, Users, ShoppingBag, Zap, Menu, Search, Trash, Plus, ArrowUpRight, ArrowDownLeft, Download, Bell, Lock, Filter, RefreshCw, Clock, Repeat, ThumbsDown, Sparkles, Paperclip, ChevronDown, BarChart2, ThumbsUp } from './Icons';
+import { TrendingUp, DollarSign, CheckCircle, ShieldCheck, LayoutGrid, FileText, Camera, CreditCard, User as UserIcon, MessageSquare, Sliders, Calendar, Edit, PieChart, AlertTriangle, Image, Target, Building, Globe, Users, ShoppingBag, Zap, Menu, Search, Trash, Plus, ArrowUpRight, ArrowDownLeft, Download, Bell, Lock, Filter, RefreshCw, Clock, Repeat, ThumbsDown, Sparkles, Paperclip, ChevronDown, BarChart2, ThumbsUp } from './Icons';
 import { useApp } from '../context/AppContext';
-import { Influencer, User as BusinessUser, InfluencerService, Order } from '../types';
+import { Influencer, User as BusinessUser, InfluencerService, Order, Message } from '../types';
 
-type View = 'dashboard' | 'proposals' | 'posts' | 'wallet' | 'profile' | 'messages' | 'reviews';
+type View = 'dashboard' | 'proposals' | 'posts' | 'wallet' | 'profile' | 'messages';
 type ProfileTab = 'general' | 'metrics' | 'pricing' | 'audience' | 'style' | 'schedule' | 'rules';
 type WalletTab = 'overview' | 'history' | 'withdraw' | 'settings';
 
@@ -16,34 +16,171 @@ interface Withdrawal {
   method: string;
 }
 
-interface ReviewExtended {
-  id: string;
-  clientName: string;
-  clientAvatar?: string;
-  rating: number;
-  date: string;
-  text: string;
-  serviceType: string;
-  tags: string[];
-  isRecurring: boolean;
-  clientId: string;
-}
+// --- Sub-components (Memoized) ---
 
-// Mock Reviews Data
-const MOCK_REVIEWS: ReviewExtended[] = [
-  { id: 'r1', clientName: 'Ana Boutique', clientAvatar: 'https://picsum.photos/50/50?r=1', rating: 5, date: '2023-10-15', text: 'Simplesmente incrível! A entrega foi super rápida e o conteúdo ficou muito natural. Minhas vendas aumentaram no mesmo dia.', serviceType: 'Story', tags: ['Rápido', 'Criativo', 'Conversão'], isRecurring: true, clientId: 'c1' },
-  { id: 'r2', clientName: 'Tech Store', clientAvatar: 'https://picsum.photos/50/50?r=2', rating: 4, date: '2023-10-10', text: 'Muito bom o vídeo, qualidade de imagem excelente. Só atrasou um pouco na resposta do briefing, mas compensou no resultado.', serviceType: 'Reels', tags: ['Qualidade Visual'], isRecurring: false, clientId: 'c2' },
-  { id: 'r3', clientName: 'Cafe & Co', clientAvatar: '', rating: 5, date: '2023-09-28', text: 'Adorei a forma como ela apresentou nosso produto. Super carismática!', serviceType: 'Story', tags: ['Carisma', 'Espontâneo'], isRecurring: true, clientId: 'c3' },
-];
+const Sidebar = React.memo(({ activeView, setActiveView, pendingCount, onLogout, isMobileMenuOpen, setIsMobileMenuOpen }: any) => {
+  const menuItems = [
+    { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid className="w-5 h-5" /> },
+    { id: 'proposals', label: 'Propostas', icon: <FileText className="w-5 h-5" /> },
+    { id: 'messages', label: 'Mensagens', icon: <MessageSquare className="w-5 h-5" /> },
+    { id: 'posts', label: 'Meus Posts', icon: <Camera className="w-5 h-5" /> },
+    { id: 'wallet', label: 'Carteira', icon: <CreditCard className="w-5 h-5" /> },
+    { id: 'profile', label: 'Meu Perfil', icon: <UserIcon className="w-5 h-5" /> },
+  ];
+
+  return (
+    <aside className={`fixed md:sticky top-0 left-0 w-64 bg-white border-r border-gray-200 h-screen z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
+      <div className="p-6 border-b border-gray-100 hidden md:block">
+        <span className="font-bold text-xl text-brand-black">Posts<span className="text-brand-blue">Baratos</span></span>
+      </div>
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {menuItems.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => { setActiveView(item.id as View); setIsMobileMenuOpen(false); }}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+              activeView === item.id 
+                ? 'bg-brand-blue text-white shadow-md shadow-brand-blue/20' 
+                : 'text-gray-600 hover:bg-gray-100'
+            }`}
+          >
+            {item.icon}
+            {item.label}
+            {item.id === 'proposals' && pendingCount > 0 && (
+              <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingCount}</span>
+            )}
+          </button>
+        ))}
+      </nav>
+      <div className="p-4 border-t border-gray-100 mt-auto">
+        <button onClick={onLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors">
+          Sair
+        </button>
+      </div>
+    </aside>
+  );
+});
+
+const DashboardHeader = React.memo(({ activeView, hasChanges, handleCancelProfile, handleSaveProfile, currentUser, influencer }: any) => {
+  const label = useMemo(() => {
+    const labels: Record<string, string> = {
+      dashboard: 'Dashboard',
+      proposals: 'Propostas',
+      messages: 'Mensagens',
+      posts: 'Meus Posts',
+      wallet: 'Carteira',
+      profile: 'Meu Perfil'
+    };
+    return labels[activeView] || 'Painel';
+  }, [activeView]);
+
+  return (
+    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+      <div>
+        <h1 className="text-2xl font-bold text-brand-dark">{label}</h1>
+        <p className="text-gray-500 text-sm">
+           {activeView === 'profile' ? 'Edite suas informações para atrair mais parceiros.' : activeView === 'wallet' ? 'Gerencie seus ganhos e saques.' : `Bem vindo, ${currentUser?.name}`}
+        </p>
+      </div>
+      
+      <div className="flex items-center gap-4 w-full md:w-auto justify-end">
+         {activeView === 'profile' && hasChanges && (
+           <div className="flex gap-2">
+              <Button onClick={handleCancelProfile} variant="ghost" size="sm" className="!text-gray-500">Cancelar</Button>
+              <Button onClick={handleSaveProfile} size="sm" className="!bg-green-600 !text-white shadow-green-200 animate-pulse">
+                  Salvar Alterações
+              </Button>
+           </div>
+         )}
+         
+         <div className="hidden md:flex items-center gap-3 pl-4 border-l border-gray-200">
+            <div className="text-right">
+              <p className="text-sm font-bold">{influencer?.handle}</p>
+              {influencer?.verified && <p className="text-xs text-brand-blue font-bold">Verificado</p>}
+            </div>
+            <img src={currentUser?.avatarUrl || 'https://via.placeholder.com/100'} className="w-10 h-10 rounded-full border border-gray-200 object-cover" alt="Avatar" />
+         </div>
+      </div>
+    </div>
+  );
+});
+
+const StatsCards = React.memo(({ availableBalance, activeOrdersCount }: any) => (
+  <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <Card className="!bg-white !shadow-sm !border-gray-200 p-6">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+          <DollarSign />
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Saldo Disponível</p>
+          <h3 className="text-2xl font-bold text-brand-dark">R$ {availableBalance.toFixed(2)}</h3>
+        </div>
+      </div>
+    </Card>
+    <Card className="!bg-white !shadow-sm !border-gray-200 p-6">
+      <div className="flex items-center gap-4">
+        <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-brand-blue">
+          <TrendingUp />
+        </div>
+        <div>
+          <p className="text-sm text-gray-500">Em Andamento</p>
+          <h3 className="text-2xl font-bold text-brand-dark">{activeOrdersCount}</h3>
+        </div>
+      </div>
+    </Card>
+  </div>
+));
+
+const OrdersTable = React.memo(({ orders, getBusinessById, openBusinessProfile }: any) => (
+  <Card className="!bg-white !shadow-sm !border-gray-200 overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="w-full text-left text-sm text-gray-600">
+        <thead className="bg-gray-50 border-b border-gray-100 uppercase text-xs font-bold text-gray-500">
+          <tr>
+            <th className="px-6 py-4">ID</th>
+            <th className="px-6 py-4">Empresa</th>
+            <th className="px-6 py-4">Serviço</th>
+            <th className="px-6 py-4">Valor</th>
+            <th className="px-6 py-4">Status</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-100">
+          {orders.length === 0 ? (
+            <tr><td colSpan={5} className="p-6 text-center">Nenhum pedido encontrado.</td></tr>
+          ) : (
+            orders.map((o: Order) => {
+               const company = getBusinessById(o.businessId);
+               return (
+                <tr key={o.id}>
+                  <td className="px-6 py-4 font-mono text-xs text-gray-500">#{o.id}</td>
+                  <td className="px-6 py-4">
+                     <button onClick={() => openBusinessProfile(o.businessId)} className="font-bold text-brand-blue hover:underline">
+                       {company ? company.name : 'Empresa'}
+                     </button>
+                  </td>
+                  <td className="px-6 py-4 font-bold">{o.serviceType}</td>
+                  <td className="px-6 py-4 text-green-600 font-bold">R$ {o.amount}</td>
+                  <td className="px-6 py-4"><Badge status={o.status} /></td>
+                </tr>
+               )
+            })
+          )}
+        </tbody>
+      </table>
+    </div>
+  </Card>
+));
 
 export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogout }) => {
-  const { currentUser, orders, updateOrderStatus, messages, sendMessage, getBusinessById, updateUser } = useApp();
+  const { currentUser, orders, updateOrderStatus, messages, sendMessage, getBusinessById, updateUser, uploadFile } = useApp();
   const influencer = currentUser as Influencer; 
   
   // Navigation State
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [activeProfileTab, setActiveProfileTab] = useState<ProfileTab>('general');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Profile Data State (Local state for editing)
   const [profileData, setProfileData] = useState<Influencer>(influencer);
@@ -51,17 +188,18 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   
   // Wallet State
   const [activeWalletTab, setActiveWalletTab] = useState<WalletTab>('overview');
-  const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
   const [newPixKey, setNewPixKey] = useState('');
   const [isAddingMethod, setIsAddingMethod] = useState(false);
   const [financialSettings, setFinancialSettings] = useState({
      notifyPayment: true,
      notifyWithdraw: true,
-     cpfCnpj: influencer.paymentInfo?.document || '',
-     fullName: influencer.name,
+     cpfCnpj: influencer?.paymentInfo?.document || '',
+     fullName: influencer?.name || '',
      taxAddress: '',
   });
+
+  const withdrawals = influencer?.paymentInfo?.withdrawals || [];
   
   // Modals & Temp States
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessUser | null>(null);
@@ -80,24 +218,35 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
   useEffect(() => {
     if (currentUser) {
       setProfileData(currentUser as Influencer);
+      setFinancialSettings(prev => ({
+        ...prev,
+        cpfCnpj: (currentUser as Influencer).paymentInfo?.document || '',
+        fullName: currentUser.name
+      }));
     }
   }, [currentUser]);
 
   // Derived Stats
-  const myOrders = orders.filter(o => o.influencerId === currentUser?.id);
-  const pendingOrders = myOrders.filter(o => o.status === 'PENDING');
-  const activeOrders = myOrders.filter(o => o.status === 'IN_PROGRESS');
-  const completedOrders = myOrders.filter(o => o.status === 'COMPLETED');
-  const totalEarnings = completedOrders.reduce((acc, curr) => acc + curr.amount, 0);
+  const myOrders = useMemo(() => orders.filter(o => o.influencerId === currentUser?.id), [orders, currentUser?.id]);
+  const pendingOrders = useMemo(() => myOrders.filter(o => o.status === 'PENDING'), [myOrders]);
+  const activeOrders = useMemo(() => myOrders.filter(o => o.status === 'IN_PROGRESS'), [myOrders]);
+  const completedOrders = useMemo(() => myOrders.filter(o => o.status === 'COMPLETED'), [myOrders]);
+  const totalEarnings = useMemo(() => completedOrders.reduce((acc, curr) => acc + curr.amount, 0), [completedOrders]);
 
   // Financial Calculations
-  const pendingIncome = activeOrders.reduce((acc, curr) => acc + curr.amount, 0) + 
-                        myOrders.filter(o => o.status === 'DELIVERED').reduce((acc, curr) => acc + curr.amount, 0);
-  const totalWithdrawn = withdrawals.filter(w => w.status !== 'REJECTED').reduce((acc, w) => acc + w.amount, 0);
-  const availableBalance = totalEarnings - totalWithdrawn;
+  const pendingIncome = useMemo(() => 
+    activeOrders.reduce((acc, curr) => acc + curr.amount, 0) + 
+    myOrders.filter(o => o.status === 'DELIVERED').reduce((acc, curr) => acc + curr.amount, 0),
+  [activeOrders, myOrders]);
+
+  const totalWithdrawn = useMemo(() => 
+    withdrawals.filter(w => w.status !== 'REJECTED').reduce((acc, w) => acc + w.amount, 0),
+  [withdrawals]);
+
+  const availableBalance = useMemo(() => totalEarnings - totalWithdrawn, [totalEarnings, totalWithdrawn]);
 
   // Transactions History (Unified)
-  const transactions = [
+  const transactions = useMemo(() => [
      ...completedOrders.map(o => ({
         id: o.id,
         date: o.createdAt, 
@@ -116,37 +265,32 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         origin: 'PostsBaratos',
         details: `Saque via ${w.method}`
      }))
-  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()), [completedOrders, withdrawals, getBusinessById]);
 
-  // Review Calculations
-  const averageRating = MOCK_REVIEWS.reduce((acc, r) => acc + r.rating, 0) / MOCK_REVIEWS.length;
-  
-  // --- Handlers ---
+  // --- Handlers (Memoized) ---
 
-  const handleDeliver = (orderId: string) => {
+  const handleDeliver = useCallback(async (orderId: string) => {
     if (deliveryLink) {
-      updateOrderStatus(orderId, 'DELIVERED', deliveryLink);
+      await updateOrderStatus(orderId, 'DELIVERED', deliveryLink);
       setDeliveryLink('');
       setActiveView('dashboard');
     }
-  };
+  }, [deliveryLink, updateOrderStatus]);
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     if (activeOrderId && messageInput.trim()) {
-      sendMessage(activeOrderId, messageInput);
+      await sendMessage(activeOrderId, messageInput);
       setMessageInput('');
     }
-  };
+  }, [activeOrderId, messageInput, sendMessage]);
 
-  const openBusinessProfile = (businessId: string) => {
-    const business = getBusinessById(businessId);
+  const openBusinessProfile = useCallback(async (businessId: string) => {
+    const business = await getBusinessById(businessId);
     if (business) setSelectedBusiness(business);
-  };
+  }, [getBusinessById]);
 
-  // --- Wallet Handlers ---
-
-  const handleWithdrawRequest = () => {
+  const handleWithdrawRequest = useCallback(async () => {
      const amount = parseFloat(withdrawalAmount);
      if (isNaN(amount) || amount <= 0) {
         alert("Digite um valor válido.");
@@ -156,7 +300,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         alert("Saldo insuficiente.");
         return;
      }
-     if (!influencer.paymentInfo?.pixKey) {
+     if (!influencer?.paymentInfo?.pixKey) {
         alert("Adicione uma chave PIX primeiro.");
         setActiveWalletTab('settings');
         return;
@@ -170,35 +314,59 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         method: 'PIX'
      };
 
-     setWithdrawals(prev => [newWithdrawal, ...prev]);
-     setWithdrawalAmount('');
-     alert("Solicitação de saque enviada com sucesso! O processamento leva até 24h.");
-  };
+     const updatedWithdrawals = [newWithdrawal, ...withdrawals];
+     
+     try {
+       await updateUser({
+         ...profileData,
+         paymentInfo: {
+           ...profileData.paymentInfo,
+           withdrawals: updatedWithdrawals
+         }
+       });
+       setWithdrawalAmount('');
+       alert("Solicitação de saque enviada com sucesso! O processamento leva até 24h.");
+     } catch (error) {
+       console.error('Erro ao solicitar saque:', error);
+       alert('Erro ao processar sua solicitação.');
+     }
+  }, [withdrawalAmount, availableBalance, influencer, withdrawals, profileData, updateUser]);
 
-  const handleSaveFinancialSettings = () => {
-     updateNestedField('paymentInfo', 'document', financialSettings.cpfCnpj);
-     alert("Configurações salvas.");
-  };
+  const handleSaveFinancialSettings = useCallback(async () => {
+     try {
+       await updateUser({
+         ...profileData,
+         name: financialSettings.fullName,
+         paymentInfo: {
+           ...profileData.paymentInfo,
+           document: financialSettings.cpfCnpj,
+           taxAddress: financialSettings.taxAddress
+         }
+       });
+       alert("Configurações financeiras salvas com sucesso.");
+     } catch (error) {
+       console.error('Erro ao salvar configurações financeiras:', error);
+       alert('Erro ao salvar configurações.');
+     }
+  }, [profileData, financialSettings, updateUser]);
 
-  // --- Profile Data Handlers ---
-
-  const handleSaveProfile = () => {
-    updateUser(profileData);
+  const handleSaveProfile = useCallback(async () => {
+    await updateUser(profileData);
     setHasChanges(false);
     alert('Perfil atualizado com sucesso! Suas alterações já estão visíveis para as empresas.');
-  };
+  }, [profileData, updateUser]);
 
-  const handleCancelProfile = () => {
-    setProfileData(influencer); // Revert to context data
+  const handleCancelProfile = useCallback(() => {
+    setProfileData(influencer);
     setHasChanges(false);
-  };
+  }, [influencer]);
 
-  const updateField = (field: keyof Influencer, value: any) => {
+  const updateField = useCallback((field: keyof Influencer, value: any) => {
     setProfileData(prev => ({ ...prev, [field]: value }));
     setHasChanges(true);
-  };
+  }, []);
 
-  const updateNestedField = (parent: keyof Influencer, field: string, value: any) => {
+  const updateNestedField = useCallback((parent: keyof Influencer, field: string, value: any) => {
     setProfileData(prev => ({
       ...prev,
       [parent]: {
@@ -207,24 +375,34 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
       }
     }));
     setHasChanges(true);
-  };
+  }, []);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, target: 'avatar' | 'portfolio' | 'mediaKit') => {
+  const handleImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>, target: 'avatar' | 'portfolio' | 'mediaKit') => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      if (target === 'avatar') updateField('avatarUrl', url);
-      else if (target === 'portfolio') {
-        const currentUrls = profileData.metrics?.portfolioUrls || [];
-        updateNestedField('metrics', 'portfolioUrls', [...currentUrls, url]);
-      } else if (target === 'mediaKit') {
-         updateNestedField('metrics', 'mediaKitUrl', url);
-         alert("Mídia Kit enviado com sucesso!");
+    if (file && currentUser) {
+      try {
+        setIsUploading(true);
+        const path = target === 'avatar' ? 'avatars' : target === 'portfolio' ? 'portfolio' : 'mediakits';
+        const url = await uploadFile(file, `${currentUser.id}/${path}`);
+        
+        if (target === 'avatar') updateField('avatarUrl', url);
+        else if (target === 'portfolio') {
+          const currentUrls = profileData.portfolio || [];
+          updateField('portfolio', [...currentUrls, url]);
+        } else if (target === 'mediaKit') {
+           updateNestedField('metrics', 'mediaKitUrl', url);
+           alert("Mídia Kit enviado com sucesso!");
+        }
+      } catch (error) {
+        console.error('Erro no upload:', error);
+        alert('Erro ao fazer upload da imagem.');
+      } finally {
+        setIsUploading(false);
       }
     }
-  };
+  }, [currentUser, profileData, uploadFile, updateField, updateNestedField]);
 
-  const handleAddService = () => {
+  const handleAddService = useCallback(() => {
     if (newService.price && newService.format) {
       const service: InfluencerService = {
         id: `srv-${Date.now()}`,
@@ -239,35 +417,24 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
       setIsServiceModalOpen(false);
       setNewService({ negotiable: false, platform: 'Instagram', format: 'Story' });
     }
-  };
+  }, [newService, profileData.services, updateField]);
 
-  const removeService = (id: string) => {
+  const removeService = useCallback((id: string) => {
     const currentServices = profileData.services || [];
     updateField('services', currentServices.filter(s => s.id !== id));
-  };
+  }, [profileData.services, updateField]);
 
-  const toggleArrayItem = (parent: keyof Influencer, field: string, item: string) => {
-    // @ts-ignore
-    const list = profileData[parent]?.[field] || [];
+  const toggleArrayItem = useCallback((parent: keyof Influencer, field: string, item: string) => {
+    const list = (profileData[parent] as any)?.[field] || [];
     if (list.includes(item)) updateNestedField(parent, field, list.filter((i: string) => i !== item));
     else updateNestedField(parent, field, [...list, item]);
-  };
+  }, [profileData, updateNestedField]);
 
-  // Helper Inputs styling
+  // Helper styles
   const inputClass = "w-full bg-white border border-gray-300 hover:border-brand-blue focus:border-brand-blue rounded-lg px-3 py-2 text-sm transition-all outline-none text-brand-black";
   const labelClass = "block text-xs font-bold text-gray-500 uppercase mb-1";
 
-  const menuItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: <LayoutGrid className="w-5 h-5" /> },
-    { id: 'proposals', label: 'Propostas', icon: <FileText className="w-5 h-5" /> },
-    { id: 'messages', label: 'Mensagens', icon: <MessageSquare className="w-5 h-5" /> },
-    { id: 'posts', label: 'Meus Posts', icon: <Camera className="w-5 h-5" /> },
-    { id: 'reviews', label: 'Avaliações', icon: <Star className="w-5 h-5" /> },
-    { id: 'wallet', label: 'Carteira', icon: <CreditCard className="w-5 h-5" /> },
-    { id: 'profile', label: 'Meu Perfil', icon: <UserIcon className="w-5 h-5" /> },
-  ];
-
-  const profileTabs = [
+  const profileTabs = useMemo(() => [
      { id: 'general', label: 'Geral', icon: <UserIcon className="w-4 h-4"/> },
      { id: 'metrics', label: 'Métricas', icon: <BarChart2 className="w-4 h-4"/> },
      { id: 'pricing', label: 'Serviços', icon: <DollarSign className="w-4 h-4"/> },
@@ -275,7 +442,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
      { id: 'style', label: 'Estilo', icon: <Image className="w-4 h-4"/> },
      { id: 'schedule', label: 'Agenda', icon: <Calendar className="w-4 h-4"/> },
      { id: 'rules', label: 'Regras', icon: <ShieldCheck className="w-4 h-4"/> },
-  ];
+  ], []);
 
   return (
     <div className="min-h-screen bg-gray-50 text-brand-black flex flex-col md:flex-row">
@@ -285,146 +452,31 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
          <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}><Menu /></button>
       </div>
 
-      {/* Sidebar */}
-      <aside className={`fixed md:sticky top-0 left-0 w-64 bg-white border-r border-gray-200 h-screen z-40 transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        <div className="p-6 border-b border-gray-100 hidden md:block">
-          <span className="font-bold text-xl text-brand-black">Posts<span className="text-brand-blue">Baratos</span></span>
-        </div>
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {menuItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => { setActiveView(item.id as View); setIsMobileMenuOpen(false); }}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
-                activeView === item.id 
-                  ? 'bg-brand-blue text-white shadow-md shadow-brand-blue/20' 
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              {item.icon}
-              {item.label}
-              {item.id === 'proposals' && pendingOrders.length > 0 && (
-                <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{pendingOrders.length}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-        <div className="p-4 border-t border-gray-100 mt-auto">
-          <button onClick={onLogout} className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors">
-            Sair
-          </button>
-        </div>
-      </aside>
+      <Sidebar 
+        activeView={activeView} 
+        setActiveView={setActiveView} 
+        pendingCount={pendingOrders.length} 
+        onLogout={onLogout}
+        isMobileMenuOpen={isMobileMenuOpen}
+        setIsMobileMenuOpen={setIsMobileMenuOpen}
+      />
 
-      {/* Main Content */}
       <main className="flex-1 p-4 md:p-8 overflow-y-auto h-[calc(100vh-64px)] md:h-screen">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-brand-dark">
-              {menuItems.find(i => i.id === activeView)?.label}
-            </h1>
-            <p className="text-gray-500 text-sm">
-               {activeView === 'profile' ? 'Edite suas informações para atrair mais parceiros.' : activeView === 'wallet' ? 'Gerencie seus ganhos e saques.' : activeView === 'reviews' ? 'Monitore sua reputação.' : `Bem vindo, ${currentUser?.name}`}
-            </p>
-          </div>
-          
-          <div className="flex items-center gap-4 w-full md:w-auto justify-end">
-             {activeView === 'profile' && hasChanges && (
-               <div className="flex gap-2">
-                  <Button onClick={handleCancelProfile} variant="ghost" size="sm" className="!text-gray-500">Cancelar</Button>
-                  <Button onClick={handleSaveProfile} size="sm" className="!bg-green-600 !text-white shadow-green-200 animate-pulse">
-                      Salvar Alterações
-                  </Button>
-               </div>
-             )}
-             
-             <div className="hidden md:flex items-center gap-3 pl-4 border-l border-gray-200">
-                <div className="text-right">
-                  <p className="text-sm font-bold">{influencer?.handle}</p>
-                  {influencer?.verified && <p className="text-xs text-brand-blue font-bold">Verificado</p>}
-                </div>
-                <img src={currentUser?.avatarUrl || 'https://via.placeholder.com/100'} className="w-10 h-10 rounded-full border border-gray-200 object-cover" alt="Avatar" />
-             </div>
-          </div>
-        </div>
+        <DashboardHeader 
+          activeView={activeView}
+          hasChanges={hasChanges}
+          handleCancelProfile={handleCancelProfile}
+          handleSaveProfile={handleSaveProfile}
+          currentUser={currentUser}
+          influencer={influencer}
+        />
 
         {/* --- VIEW: DASHBOARD --- */}
         {activeView === 'dashboard' && (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <Card className="!bg-white !shadow-sm !border-gray-200 p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center text-green-600">
-                    <DollarSign />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Saldo Disponível</p>
-                    <h3 className="text-2xl font-bold text-brand-dark">R$ {availableBalance.toFixed(2)}</h3>
-                  </div>
-                </div>
-              </Card>
-              <Card className="!bg-white !shadow-sm !border-gray-200 p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-brand-blue">
-                    <TrendingUp />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Em Andamento</p>
-                    <h3 className="text-2xl font-bold text-brand-dark">{activeOrders.length}</h3>
-                  </div>
-                </div>
-              </Card>
-              <Card className="!bg-white !shadow-sm !border-gray-200 p-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
-                    <CheckCircle />
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Posts Entregues</p>
-                    <h3 className="text-2xl font-bold text-brand-dark">{completedOrders.length}</h3>
-                  </div>
-                </div>
-              </Card>
-            </div>
+            <StatsCards availableBalance={availableBalance} activeOrdersCount={activeOrders.length} />
             <h2 className="text-xl font-bold text-brand-dark mb-4">Pedidos Recentes</h2>
-            <Card className="!bg-white !shadow-sm !border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-gray-600">
-                  <thead className="bg-gray-50 border-b border-gray-100 uppercase text-xs font-bold text-gray-500">
-                    <tr>
-                      <th className="px-6 py-4">ID</th>
-                      <th className="px-6 py-4">Empresa</th>
-                      <th className="px-6 py-4">Serviço</th>
-                      <th className="px-6 py-4">Valor</th>
-                      <th className="px-6 py-4">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {myOrders.length === 0 ? (
-                      <tr><td colSpan={5} className="p-6 text-center">Nenhum pedido encontrado.</td></tr>
-                    ) : (
-                      myOrders.map(o => {
-                         const company = getBusinessById(o.businessId);
-                         return (
-                          <tr key={o.id}>
-                            <td className="px-6 py-4 font-mono text-xs text-gray-500">#{o.id}</td>
-                            <td className="px-6 py-4">
-                               <button onClick={() => openBusinessProfile(o.businessId)} className="font-bold text-brand-blue hover:underline">
-                                 {company ? company.name : 'Empresa'}
-                               </button>
-                            </td>
-                            <td className="px-6 py-4 font-bold">{o.serviceType}</td>
-                            <td className="px-6 py-4 text-green-600 font-bold">R$ {o.amount}</td>
-                            <td className="px-6 py-4"><Badge status={o.status} /></td>
-                          </tr>
-                         )
-                      })
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
+            <OrdersTable orders={myOrders} getBusinessById={getBusinessById} openBusinessProfile={openBusinessProfile} />
           </>
         )}
 
@@ -448,14 +500,12 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                              </p>
                              <p className="text-green-600 font-bold text-xl mb-4">R$ {order.amount}</p>
                              <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600 mb-4">
-                                <span className="font-bold block mb-1">Briefing:</span>
-                                {order.briefing}
+                                {order.briefing || 'Nenhum briefing fornecido.'}
                              </div>
                           </div>
-                          <div className="flex flex-col gap-2 min-w-[150px]">
-                             <Button onClick={() => updateOrderStatus(order.id, 'IN_PROGRESS')} variant="primary" size="sm" className="!bg-brand-neon">Aceitar Proposta</Button>
-                             <Button onClick={() => updateOrderStatus(order.id, 'CANCELLED')} variant="danger" size="sm">Recusar</Button>
-                             <Button onClick={() => openBusinessProfile(order.businessId)} variant="outline" size="sm" className="!text-xs">Ver Perfil da Empresa</Button>
+                          <div className="flex gap-2">
+                             <Button onClick={() => updateOrderStatus(order.id, 'REJECTED')} variant="ghost" className="!text-red-500 hover:!bg-red-50">Recusar</Button>
+                             <Button onClick={() => updateOrderStatus(order.id, 'IN_PROGRESS')} className="!bg-brand-neon">Aceitar Job</Button>
                           </div>
                        </div>
                     </Card>
@@ -467,32 +517,27 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
 
         {/* --- VIEW: MESSAGES --- */}
         {activeView === 'messages' && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px] max-h-[calc(100vh-200px)]">
-            <Card className="!bg-white !shadow-sm !border-gray-200 md:col-span-1 overflow-y-auto p-0">
-               <div className="p-4 border-b border-gray-100">
-                  <h3 className="font-bold text-gray-500 uppercase text-xs">Conversas</h3>
-               </div>
-               <div className="divide-y divide-gray-50">
-                 {myOrders.map(order => {
-                   const company = getBusinessById(order.businessId);
-                   return (
-                   <div 
-                    key={order.id} 
-                    onClick={() => setActiveOrderId(order.id)}
-                    className={`p-4 cursor-pointer hover:bg-gray-50 transition-colors ${activeOrderId === order.id ? 'bg-blue-50' : ''}`}
-                   >
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-xs font-bold text-gray-500">{company?.name.substring(0,1) || 'E'}</div>
-                        <div className="overflow-hidden">
-                          <p className="text-sm font-bold text-brand-dark">{company?.name || 'Empresa'}</p>
-                          <p className="text-xs text-gray-500 truncate">Pedido #{order.id} - {order.status}</p>
-                        </div>
-                      </div>
-                   </div>
-                 )})}
-                 {myOrders.length === 0 && (
-                   <p className="p-4 text-xs text-gray-400 text-center">Nenhuma conversa iniciada.</p>
-                 )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 h-[600px]">
+            <Card className="!bg-white !shadow-sm !border-gray-200 overflow-hidden flex flex-col p-0">
+               <div className="p-4 border-b border-gray-100 font-bold text-sm bg-gray-50">Conversas Ativas</div>
+               <div className="flex-1 overflow-y-auto">
+                  {myOrders.filter(o => o.status !== 'PENDING' && o.status !== 'REJECTED').map(order => {
+                    const company = getBusinessById(order.businessId);
+                    return (
+                      <button 
+                        key={order.id}
+                        onClick={() => setActiveOrderId(order.id)}
+                        className={`w-full p-4 text-left border-b border-gray-50 transition-colors flex items-center gap-3 ${activeOrderId === order.id ? 'bg-blue-50 border-l-4 border-l-brand-blue' : 'hover:bg-gray-50'}`}
+                      >
+                         <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500"><Building className="w-5 h-5"/></div>
+                         <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate">{company?.name || 'Empresa'}</p>
+                            <p className="text-xs text-gray-500 truncate">Pedido #{order.id}</p>
+                         </div>
+                         <Badge status={order.status} />
+                      </button>
+                    )
+                  })}
                </div>
             </Card>
             
@@ -578,82 +623,6 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 )}
               </Card>
            </div>
-        )}
-
-        {/* --- VIEW: REVIEWS (NEW REPUTATION DASHBOARD) --- */}
-        {activeView === 'reviews' && (
-            <div className="space-y-8 pb-12 animate-in fade-in">
-               <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                  {/* Summary Column */}
-                  <div className="col-span-1 lg:col-span-1 space-y-6">
-                      <Card className="!bg-brand-black text-white p-6 relative overflow-hidden flex flex-col justify-center items-center text-center">
-                        <div className="absolute top-0 right-0 p-6 opacity-10">
-                            <Star className="w-32 h-32" />
-                        </div>
-                        <h2 className="text-6xl font-extrabold mb-2">{averageRating.toFixed(1)}</h2>
-                        <div className="flex gap-1 mb-4">
-                            {[1,2,3,4,5].map(s => (
-                            <Star key={s} className={`w-5 h-5 ${s <= Math.round(averageRating) ? 'text-brand-yellow fill-brand-yellow' : 'text-gray-700'}`} />
-                            ))}
-                        </div>
-                        <div className="inline-flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full text-xs font-bold text-gray-300">
-                            <CheckCircle className="w-3 h-3 text-brand-blue" /> Influenciador Verificado
-                        </div>
-                        <p className="text-gray-500 text-xs mt-4">{MOCK_REVIEWS.length} avaliações totais</p>
-                      </Card>
-                  </div>
-
-                  {/* List Column */}
-                  <div className="col-span-1 lg:col-span-3 space-y-4">
-                      {MOCK_REVIEWS.length > 0 ? (
-                        MOCK_REVIEWS.map(review => (
-                            <Card key={review.id} className="!bg-white !shadow-sm !border-gray-200 p-6">
-                                {/* Review Item Content */}
-                                <div className="flex justify-between items-start">
-                                    <div className="flex gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-gray-200 overflow-hidden">
-                                            {review.clientAvatar ? <img src={review.clientAvatar} alt={review.clientName} className="w-full h-full object-cover"/> : <div className="w-full h-full flex items-center justify-center text-gray-500 font-bold">{review.clientName[0]}</div>}
-                                        </div>
-                                        <div>
-                                            <h4 className="font-bold text-brand-dark">{review.clientName}</h4>
-                                            <div className="flex items-center gap-2 text-xs text-gray-500 mt-1">
-                                                <span>{new Date(review.date).toLocaleDateString()}</span>
-                                                <span>•</span>
-                                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-bold">{review.serviceType}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="flex">
-                                        {[1,2,3,4,5].map(s => (
-                                            <Star key={s} className={`w-4 h-4 ${s <= review.rating ? 'text-brand-yellow fill-brand-yellow' : 'text-gray-200'}`} />
-                                        ))}
-                                    </div>
-                                </div>
-                                <p className="mt-4 text-gray-600 text-sm leading-relaxed">
-                                    "{review.text}"
-                                </p>
-                                <div className="mt-4 flex flex-wrap gap-2">
-                                    {review.tags.map(tag => (
-                                        <span key={tag} className="text-[10px] uppercase font-bold text-brand-blue bg-blue-50 px-2 py-1 rounded-full">
-                                            {tag}
-                                        </span>
-                                    ))}
-                                    {review.isRecurring && (
-                                        <span className="text-[10px] uppercase font-bold text-green-700 bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
-                                            <Repeat className="w-3 h-3"/> Recorrente
-                                        </span>
-                                    )}
-                                </div>
-                            </Card>
-                        ))
-                      ) : (
-                          <div className="text-center py-12 text-gray-400">
-                              <p>Nenhuma avaliação ainda.</p>
-                          </div>
-                      )}
-                  </div>
-               </div>
-            </div>
         )}
 
         {/* --- VIEW: PROFILE (EDITABLE) --- */}
@@ -831,7 +800,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                    </div>
                 )}
 
-                {/* 4. ABA PÚBLICO - COM BARRA DE GÊNERO ATUALIZADA */}
+                {/* 4. ABA PÚBLICO */}
                 {activeProfileTab === 'audience' && (
                    <div className="animate-in fade-in space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -854,7 +823,6 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                       <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
                          <label className={labelClass}>Divisão de Gênero (%)</label>
                          
-                         {/* Visual Progress Bar */}
                          <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden flex my-3 relative shadow-inner">
                             <div 
                                className="h-full bg-blue-500 transition-all duration-500 ease-in-out"
@@ -926,12 +894,12 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                             <input type="file" ref={portfolioInputRef} className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, 'portfolio')} />
                          </div>
                          <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
-                            {profileData.metrics?.portfolioUrls?.map((url, i) => (
+                            {profileData.portfolio?.map((url, i) => (
                                <div key={i} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100">
                                   <img src={url} className="w-full h-full object-cover" />
                                   <button className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => {
-                                     const newUrls = profileData.metrics?.portfolioUrls?.filter((_, idx) => idx !== i);
-                                     updateNestedField('metrics', 'portfolioUrls', newUrls);
+                                     const newUrls = profileData.portfolio?.filter((_, idx) => idx !== i);
+                                     updateField('portfolio', newUrls);
                                   }}>
                                      <Trash className="w-3 h-3" />
                                   </button>
@@ -1004,10 +972,9 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
            </div>
         )}
 
-        {/* --- VIEW: WALLET (FULL FEATURED) --- */}
+        {/* --- VIEW: WALLET --- */}
         {activeView === 'wallet' && (
           <div className="space-y-6 pb-12">
-             {/* 1. Saldo Principal */}
              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="!bg-brand-black text-white p-6 relative overflow-hidden flex flex-col justify-between h-40">
                    <div className="absolute top-0 right-0 p-4 opacity-10">
@@ -1059,7 +1026,6 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 </Card>
              </div>
 
-             {/* Wallet Tabs */}
              <div className="flex border-b border-gray-200 overflow-x-auto no-scrollbar bg-white rounded-t-xl px-2">
                 {[
                    { id: 'overview', label: 'Visão Geral', icon: <TrendingUp className="w-4 h-4"/> },
@@ -1079,7 +1045,6 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
              </div>
 
              <Card className="!bg-white !border-gray-200 !rounded-t-none !mt-0 min-h-[400px]">
-                {/* 2. Histórico de Transações */}
                 {(activeWalletTab === 'history' || activeWalletTab === 'overview') && (
                    <div className="space-y-6 animate-in fade-in">
                       {activeWalletTab === 'overview' && (
@@ -1143,7 +1108,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                    </div>
                 )}
 
-                {/* 3. Área de Saque */}
+                {/* Área de Saque */}
                 {activeWalletTab === 'withdraw' && (
                    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in">
                       <div className="space-y-4">
@@ -1165,11 +1130,11 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                          <div className="flex justify-between items-center">
                             <label className="block text-sm font-bold text-gray-700">Método de Recebimento (PIX)</label>
                             <button onClick={() => setIsAddingMethod(!isAddingMethod)} className="text-xs text-brand-blue font-bold hover:underline">
-                               {profileData.paymentInfo?.pixKey ? 'Alterar Chave' : 'Adicionar Chave'}
+                               {influencer?.paymentInfo?.pixKey ? 'Alterar Chave' : 'Adicionar Chave'}
                             </button>
                          </div>
                          
-                         {profileData.paymentInfo?.pixKey && !isAddingMethod ? (
+                         {influencer?.paymentInfo?.pixKey && !isAddingMethod ? (
                             <div className="p-4 border border-green-200 bg-green-50 rounded-xl flex items-center justify-between">
                                <div className="flex items-center gap-3">
                                   <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center">
@@ -1177,7 +1142,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                                   </div>
                                   <div>
                                      <p className="font-bold text-green-900">Chave PIX Ativa</p>
-                                     <p className="text-xs text-green-700">{profileData.paymentInfo.pixKey}</p>
+                                     <p className="text-xs text-green-700">{influencer.paymentInfo.pixKey}</p>
                                   </div>
                                </div>
                                <CheckCircle className="text-green-600 w-6 h-6" />
@@ -1211,7 +1176,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                    </div>
                 )}
 
-                {/* 4. Configurações Financeiras */}
+                {/* Configurações Financeiras */}
                 {activeWalletTab === 'settings' && (
                    <div className="max-w-2xl mx-auto space-y-8 animate-in fade-in">
                       <div className="grid grid-cols-1 gap-6">
@@ -1295,6 +1260,18 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                   <div><h2 className="text-xl font-bold">{selectedBusiness.name}</h2><p className="text-sm text-gray-500">{selectedBusiness.companyProfile.sector}</p></div>
                </div>
                <p className="text-gray-600 bg-gray-50 p-4 rounded-lg text-sm">{selectedBusiness.companyProfile.description}</p>
+               
+               <div className="mt-4 pt-4 border-t border-gray-100">
+                  <h4 className="font-bold text-brand-dark mb-2 text-sm flex items-center gap-2">
+                    <Lock className="w-4 h-4" /> Privacidade de Contato
+                  </h4>
+                  <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
+                    <p className="text-xs text-blue-800 leading-relaxed italic">
+                      "Os dados de contato direto desta empresa são protegidos. Estes dados não estão visíveis no sistema aos usuários, apenas para a plataforma <strong>POSTS BARATOS</strong>. 
+                      Utilize o chat do pedido para se comunicar com a marca."
+                    </p>
+                  </div>
+               </div>
             </div>
           )}
         </Modal>

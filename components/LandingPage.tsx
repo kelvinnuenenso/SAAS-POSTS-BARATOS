@@ -30,7 +30,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <div className="hidden md:flex items-center space-x-8">
               <a href="#como-funciona" className="text-sm font-medium hover:text-brand-blue transition-colors">Como Funciona</a>
               <a href="#beneficios" className="text-sm font-medium hover:text-brand-blue transition-colors">Benefícios</a>
-              <a href="#depoimentos" className="text-sm font-medium hover:text-brand-blue transition-colors">Depoimentos</a>
               <a href="#precos" className="text-sm font-medium hover:text-brand-blue transition-colors">Preços</a>
               <div className="flex items-center gap-4 ml-4">
                 <button onClick={onNavigateLogin} className="text-sm font-medium hover:text-white text-gray-400">Login</button>
@@ -86,18 +85,6 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               Quero ser Influenciador
             </Button>
           </div>
-
-          <div className="flex flex-col items-center justify-center gap-4 text-sm text-gray-500">
-            <div className="flex -space-x-2">
-              {[1,2,3,4].map(i => (
-                <img key={i} src={`https://picsum.photos/40/40?random=${i}`} alt="User" className="w-10 h-10 rounded-full border-2 border-brand-black" />
-              ))}
-            </div>
-            <p className="flex items-center gap-2">
-              <Star className="w-4 h-4 text-brand-blue fill-brand-blue" />
-              <span className="text-white font-bold">4.9/5</span> de satisfação em +12.000 posts entregues.
-            </p>
-          </div>
         </div>
       </section>
 
@@ -144,43 +131,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             </div>
 
             <div className="relative">
-              {/* Mockup Cards */}
+              {/* Mockup Cards Removed for backend integration */}
               <div className="absolute inset-0 bg-brand-blue/20 blur-[60px] rounded-full"></div>
-              <div className="relative space-y-4">
-                <Card className="flex items-center gap-4 transform translate-x-4">
-                  <img src="https://picsum.photos/60/60?random=10" className="rounded-full w-14 h-14" alt="Influencer" />
-                  <div className="flex-1">
-                    <h4 className="font-bold">Ana Júlia</h4>
-                    <p className="text-xs text-gray-400">Moda & Lifestyle • 15k seguidores</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="block font-bold text-brand-blue">R$ 80,00</span>
-                    <span className="text-xs text-gray-500">por Story</span>
-                  </div>
-                </Card>
-                <Card className="flex items-center gap-4 transform -translate-x-4 border-brand-blue/30 shadow-lg shadow-brand-blue/10">
-                  <img src="https://picsum.photos/60/60?random=11" className="rounded-full w-14 h-14" alt="Influencer" />
-                  <div className="flex-1">
-                    <h4 className="font-bold">Pedro Tech</h4>
-                    <p className="text-xs text-gray-400">Tecnologia • 42k seguidores</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="block font-bold text-brand-blue">R$ 150,00</span>
-                    <span className="text-xs text-gray-500">por Reels</span>
-                  </div>
-                  <div className="absolute -top-3 -right-3 bg-brand-blue text-white text-xs px-2 py-1 rounded-full font-bold">Contratado</div>
-                </Card>
-                <Card className="flex items-center gap-4 transform translate-x-2">
-                  <img src="https://picsum.photos/60/60?random=12" className="rounded-full w-14 h-14" alt="Influencer" />
-                  <div className="flex-1">
-                    <h4 className="font-bold">Fit Carol</h4>
-                    <p className="text-xs text-gray-400">Fitness • 20k seguidores</p>
-                  </div>
-                  <div className="text-right">
-                    <span className="block font-bold text-brand-blue">R$ 90,00</span>
-                    <span className="text-xs text-gray-500">por Story</span>
-                  </div>
-                </Card>
+              <div className="relative flex items-center justify-center p-12 border-2 border-dashed border-white/10 rounded-2xl bg-white/5">
+                <div className="text-center">
+                   <div className="w-16 h-16 bg-brand-blue/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Search className="w-8 h-8 text-brand-blue" />
+                   </div>
+                   <p className="text-gray-400 font-medium">Conectando você aos melhores <br/> influenciadores em tempo real.</p>
+                </div>
               </div>
             </div>
           </div>
@@ -278,8 +237,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
         <div className="relative z-10 max-w-4xl mx-auto px-4 text-center">
           <h2 className="text-4xl md:text-5xl font-extrabold mb-8">Pare de Queimar Dinheiro.</h2>
           <p className="text-xl text-gray-300 mb-10">
-            Comece a vender com a força da recomendação hoje mesmo.<br/>
-            Junte-se a mais de 5.000 empresas que já usam o PostsBaratos.
+            Comece a vender com a força da recomendação hoje mesmo.
           </p>
           <Button onClick={onNavigateBusiness} variant="primary" size="lg" className="px-12 py-6 text-xl shadow-2xl shadow-brand-blue/40 hover:scale-105 transform transition-transform">
             QUERO COMEÇAR AGORA
