@@ -26,8 +26,11 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error('Uncaught error:', error, errorInfo);
   }
 
-  public render() {
-    if (this.state.hasError) {
+  public render(): ReactNode {
+    const { hasError, error } = this.state;
+    const { children } = this.props;
+
+    if (hasError) {
       return (
         <div className="min-h-screen bg-brand-black flex items-center justify-center p-4">
           <div className="max-w-md w-full glass p-8 rounded-2xl text-center">
@@ -46,9 +49,9 @@ export class ErrorBoundary extends Component<Props, State> {
             >
               Recarregar Página
             </button>
-            {this.state.error && (
+            {error && (
               <pre className="mt-6 p-4 bg-black/50 rounded-lg text-left text-xs text-red-400 overflow-auto max-h-40">
-                {this.state.error.toString()}
+                {error.toString()}
               </pre>
             )}
           </div>
@@ -56,6 +59,6 @@ export class ErrorBoundary extends Component<Props, State> {
       );
     }
 
-    return this.props.children;
+    return children;
   }
 }
