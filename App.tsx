@@ -63,9 +63,10 @@ const Main: React.FC = () => {
     }
 
     // 2. If onboarding is complete, go to dashboard based on role
-    if (user.role === UserRole.ADMIN) {
+    const userRole = user.role as UserRole;
+    if (userRole === UserRole.ADMIN) {
       navigate('admin-dashboard');
-    } else if (user.role === UserRole.BUSINESS) {
+    } else if (userRole === UserRole.BUSINESS) {
       navigate('business-dashboard');
     } else {
       navigate('influencer-dashboard');
