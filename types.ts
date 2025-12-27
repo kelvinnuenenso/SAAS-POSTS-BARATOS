@@ -56,6 +56,19 @@ export interface CompanyProfile {
     type?: 'Influencer' | 'UGC' | 'Both';
   };
 
+  // Campaign Rules & Guidelines
+  guidelines?: {
+    mustHave?: string;
+    restrictions?: string;
+  };
+
+  campaignRules?: {
+    objective?: string;
+    dos?: string;
+    donts?: string;
+    technicalRequirements?: string;
+  };
+
   // Contact
   contact?: {
     email?: string;
@@ -73,6 +86,7 @@ export interface InfluencerService {
   price: number;
   promoPrice?: number;
   negotiable: boolean;
+  description?: string;
 }
 
 export interface User {
@@ -121,6 +135,8 @@ export interface Influencer extends User {
     avgReach?: { reels: number; stories: number; feed: number };
     avgViews?: number;
     avgLikes?: number;
+    avgStoriesViews?: number;
+    avgReelsViews?: number;
     engagementRateManual?: number; // If API fails
     brandsWorkedWith?: string[];
     mediaKitUrl?: string;
@@ -136,6 +152,8 @@ export interface Influencer extends User {
     ageRange?: string;
     topInterests?: string[];
     genderSplit?: { male: number; female: number };
+    gender?: string;
+    topCities?: string[];
     estimatedClass?: 'A' | 'B' | 'C' | 'D';
   };
 
@@ -146,6 +164,7 @@ export interface Influencer extends User {
     favoriteFormats?: string[];
     productionFrequency?: string; // e.g. 3x week
     editingLevel?: 'Básica' | 'Média' | 'Avançada';
+    tags?: string[];
   };
 
   // 6. Schedule & Availability
@@ -156,6 +175,8 @@ export interface Influencer extends User {
     maxMonthlyCapacity?: number;
     availabilityType?: 'Paid' | 'Barter' | 'Both'; // Campaign, Permuta, Ambos
     preferredContactTime?: 'Morning' | 'Afternoon' | 'Night' | 'Any';
+    isAvailable?: boolean;
+    notes?: string;
   };
 
   // 7. Rules
@@ -172,6 +193,8 @@ export interface Influencer extends User {
     pixKey?: string;
     bankAccount?: string;
     document?: string; // CPF/CNPJ
+    withdrawals?: Withdrawal[];
+    taxAddress?: string;
   };
   
   portfolio?: string[];
@@ -180,7 +203,18 @@ export interface Influencer extends User {
   contactSettings?: {
     publicEmail?: string;
     whatsapp?: string;
+    allowDirectMessages?: boolean;
+    showEmailToBusinesses?: boolean;
+    restrictedNiches?: string[];
   };
+}
+
+export interface Withdrawal {
+  id: string;
+  date: string;
+  amount: number;
+  status: 'PENDING' | 'COMPLETED' | 'REJECTED';
+  method: 'PIX';
 }
 
 export interface Order {
@@ -210,7 +244,9 @@ export interface Message {
   orderId: string;
   senderId: string;
   text: string;
+  content?: string; // Support for both
   timestamp: string;
+  createdAt?: string; // Support for both
 }
 
 export interface CampaignConfig {

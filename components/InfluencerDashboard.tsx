@@ -132,7 +132,7 @@ const StatsCards = React.memo(({ availableBalance, activeOrdersCount }: any) => 
   </div>
 ));
 
-const OrdersTable = React.memo(({ orders, getBusinessById, openBusinessProfile }: any) => (
+const OrdersTable = React.memo(({ orders, businessNames, openBusinessProfile }: any) => (
   <Card className="!bg-white !shadow-sm !border-gray-200 overflow-hidden">
     <div className="overflow-x-auto">
       <table className="w-full text-left text-sm text-gray-600">
@@ -150,13 +150,13 @@ const OrdersTable = React.memo(({ orders, getBusinessById, openBusinessProfile }
             <tr><td colSpan={5} className="p-6 text-center">Nenhum pedido encontrado.</td></tr>
           ) : (
             orders.map((o: Order) => {
-               const company = getBusinessById(o.businessId);
+               const companyName = businessNames[o.businessId];
                return (
                 <tr key={o.id}>
                   <td className="px-6 py-4 font-mono text-xs text-gray-500">#{o.id}</td>
                   <td className="px-6 py-4">
                      <button onClick={() => openBusinessProfile(o.businessId)} className="font-bold text-brand-blue hover:underline">
-                       {company ? company.name : 'Empresa'}
+                       {companyName || 'Empresa'}
                      </button>
                   </td>
                   <td className="px-6 py-4 font-bold">{o.serviceType}</td>
@@ -245,6 +245,36 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
 
   const availableBalance = useMemo(() => totalEarnings - totalWithdrawn, [totalEarnings, totalWithdrawn]);
 
+  const [businessNames, setBusinessNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const fetchNames = async () => {
+      const uniqueIds = Array.from(new Set([
+        ...completedOrders.map(o => o.businessId),
+        ...myOrders.map(o => o.businessId)
+      ]));
+      
+      const newNames = { ...businessNames };
+      let changed = false;
+      
+      for (const id of uniqueIds) {
+        if (!newNames[id]) {
+          const business = await getBusinessById(id);
+          if (business) {
+            newNames[id] = business.name;
+            changed = true;
+          }
+        }
+      }
+      
+      if (changed) setBusinessNames(newNames);
+    };
+    
+    if (completedOrders.length > 0 || myOrders.length > 0) {
+      fetchNames();
+    }
+  }, [completedOrders, myOrders, getBusinessById]);
+
   // Transactions History (Unified)
   const transactions = useMemo(() => [
      ...completedOrders.map(o => ({
@@ -253,7 +283,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
         type: 'IN',
         amount: o.amount,
         status: 'COMPLETED',
-        origin: getBusinessById(o.businessId)?.name || 'Empresa',
+        origin: businessNames[o.businessId] || 'Empresa',
         details: `Pagamento Pedido #${o.id}`
      })),
      ...withdrawals.map(w => ({
@@ -476,7 +506,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
           <>
             <StatsCards availableBalance={availableBalance} activeOrdersCount={activeOrders.length} />
             <h2 className="text-xl font-bold text-brand-dark mb-4">Pedidos Recentes</h2>
-            <OrdersTable orders={myOrders} getBusinessById={getBusinessById} openBusinessProfile={openBusinessProfile} />
+            <OrdersTable orders={myOrders} businessNames={businessNames} openBusinessProfile={openBusinessProfile} />
           </>
         )}
 
@@ -489,14 +519,14 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 </Card>
              ) : (
                 pendingOrders.map(order => {
-                   const company = getBusinessById(order.businessId);
+                   const companyName = businessNames[order.businessId];
                    return (
                     <Card key={order.id} className="!bg-white !shadow-sm !border-gray-200">
                        <div className="flex justify-between items-start">
                           <div>
                              <h3 className="font-bold text-lg text-brand-dark mb-1">Nova Proposta: {order.serviceType}</h3>
                              <p className="text-sm text-gray-500 mb-4">
-                               De: <button onClick={() => openBusinessProfile(order.businessId)} className="font-bold text-brand-blue hover:underline">{company ? company.name : 'Empresa Oculta'}</button>
+                               De: <button onClick={() => openBusinessProfile(order.businessId)} className="font-bold text-brand-blue hover:underline">{companyName || 'Empresa Oculta'}</button>
                              </p>
                              <p className="text-green-600 font-bold text-xl mb-4">R$ {order.amount}</p>
                              <div className="bg-gray-50 p-3 rounded-lg text-sm text-gray-600 mb-4">
@@ -522,7 +552,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                <div className="p-4 border-b border-gray-100 font-bold text-sm bg-gray-50">Conversas Ativas</div>
                <div className="flex-1 overflow-y-auto">
                   {myOrders.filter(o => o.status !== 'PENDING' && o.status !== 'REJECTED').map(order => {
-                    const company = getBusinessById(order.businessId);
+                    const companyName = businessNames[order.businessId];
                     return (
                       <button 
                         key={order.id}
@@ -531,7 +561,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                       >
                          <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-gray-500"><Building className="w-5 h-5"/></div>
                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate">{company?.name || 'Empresa'}</p>
+                            <p className="font-bold text-sm truncate">{companyName || 'Empresa'}</p>
                             <p className="text-xs text-gray-500 truncate">Pedido #{order.id}</p>
                          </div>
                          <Badge status={order.status} />
@@ -597,13 +627,13 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
                 ) : (
                   <div className="space-y-6">
                      {activeOrders.map(order => {
-                       const company = getBusinessById(order.businessId);
+                       const companyName = businessNames[order.businessId];
                        return (
                         <div key={order.id} className="p-4 border border-gray-200 rounded-xl">
                            <div className="flex justify-between mb-4">
                               <div>
                                  <span className="font-bold text-sm block">Pedido #{order.id} - {order.serviceType}</span>
-                                 <span className="text-xs text-gray-500">Para: {company?.name}</span>
+                                 <span className="text-xs text-gray-500">Para: {companyName || 'Empresa'}</span>
                               </div>
                               <span className="text-green-600 font-bold">R$ {order.amount}</span>
                            </div>

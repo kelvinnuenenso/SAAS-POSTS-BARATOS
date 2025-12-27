@@ -41,7 +41,7 @@ export const Login: React.FC<LoginProps> = ({ roleIntent, onLoginSuccess, onBack
     }
     
     try {
-      const user = await login(roleIntent, email, password, fullName); 
+      const user = await login(roleIntent, email, password, fullName);
       setIsLoading(false);
       onLoginSuccess(user);
     } catch (err: any) {

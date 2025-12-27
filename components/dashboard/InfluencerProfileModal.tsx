@@ -144,7 +144,7 @@ export const InfluencerProfileModal: React.FC<InfluencerProfileModalProps> = ({
                       <div>
                          <h4 className="font-bold text-brand-blue text-sm">Estratégia de Conteúdo</h4>
                          <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                            {selectedInfluencer.contentStyle || 'Focado em autenticidade e conexão real com a audiência, garantindo alta conversão para marcas parceiras.'}
+                            {selectedInfluencer.contentStyle?.tone || 'Focado em autenticidade e conexão real com a audiência, garantindo alta conversão para marcas parceiras.'}
                          </p>
                       </div>
                    </div>

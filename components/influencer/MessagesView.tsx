@@ -93,9 +93,9 @@ export const MessagesView: React.FC<MessagesViewProps> = React.memo(({
                            ? 'bg-brand-blue text-white rounded-tr-none' 
                            : 'bg-white border border-gray-200 text-brand-dark rounded-tl-none shadow-sm'
                        }`}>
-                          {msg.content}
+                          {msg.text}
                           <p className={`text-[9px] mt-1 opacity-60 ${msg.senderId === currentUser?.id ? 'text-right' : 'text-left'}`}>
-                            {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           </p>
                        </div>
                     </div>

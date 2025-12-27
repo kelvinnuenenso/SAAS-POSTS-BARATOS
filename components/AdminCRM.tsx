@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Card, Button, Badge } from './UI';
+import { Modal, Card, Button, Badge } from './UI';
 import { Users, Search, Filter, ShieldCheck, Mail, Phone, Building, User as UserIcon, ArrowLeft, RefreshCw, Eye, Target, Star, MapPin, Globe } from './Icons';
 import { useApp } from '../context/AppContext';
 import { User, Influencer, UserRole } from '../types';
@@ -51,7 +51,7 @@ const UserRow = React.memo(({ user, onSelect }: { user: User | Influencer; onSel
         </div>
       </td>
       <td className="p-4 text-right">
-        <Button size="xs" variant="ghost" className="text-brand-blue" onClick={() => onSelect(user)}>
+        <Button size="sm" variant="ghost" className="text-brand-blue" onClick={() => onSelect(user)}>
           <Eye className="w-4 h-4 mr-1" /> Detalhes
         </Button>
       </td>

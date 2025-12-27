@@ -133,7 +133,7 @@ export const ProfileView: React.FC<ProfileViewProps> = React.memo(({
                    </div>
                    <div>
                       <label className={labelClass}>Cidade/Estado</label>
-                      <input type="text" value={profileData.location} onChange={(e) => updateField('location', e.target.value)} className={inputClass} />
+                      <input type="text" value={profileData.location?.city || ''} onChange={(e) => updateNestedField('location', 'city', e.target.value)} className={inputClass} />
                    </div>
                 </div>
              </div>

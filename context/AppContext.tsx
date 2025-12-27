@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { User, Influencer, Order, Message, UserRole, ServiceType } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from './supabaseClient';
+import { User, Influencer, Order, Message, UserRole, OrderStatus, ServiceType } from '../types';
 
 interface AppContextType {
   currentUser: User | Influencer | null;
@@ -8,10 +8,10 @@ interface AppContextType {
   orders: Order[];
   messages: Message[];
   loading: boolean;
-  login: (role: UserRole) => Promise<User>;
-  logout: () => void;
-  createOrder: (influencerId: string, serviceType: 'Story' | 'Reels' | 'Feed', amount: number, briefing: string) => Promise<void>;
-  updateOrderStatus: (orderId: string, status: Order['status'], deliveryUrl?: string) => Promise<void>;
+  login: (role: UserRole, email?: string, password?: string, fullName?: string) => Promise<User>;
+  logout: () => Promise<void>;
+  createOrder: (influencerId: string, serviceType: ServiceType, amount: number, briefing: string) => Promise<void>;
+  updateOrderStatus: (orderId: string, status: OrderStatus, deliveryUrl?: string) => Promise<void>;
   sendMessage: (orderId: string, text: string) => Promise<void>;
   updateUser: (data: Partial<User | Influencer>) => Promise<void>;
   uploadFile: (file: File, path: string) => Promise<string>;
@@ -252,7 +252,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           role: finalRole,
           name: fullName,
           balance: 0,
-          onboarding_completed: false
+          onboardingCompleted: false
         } as User;
 
         setCurrentUser(formatted);

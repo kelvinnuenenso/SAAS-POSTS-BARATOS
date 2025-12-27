@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, Card, Button } from '../UI';
+import { Modal, Button } from '../UI';
 import { User } from '../../types';
 import { Target, FileText, AlertCircle, CheckCircle, Info } from '../Icons';
 
