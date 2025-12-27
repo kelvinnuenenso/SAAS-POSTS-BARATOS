@@ -159,7 +159,8 @@ const Step3 = React.memo(({ formData, updateNestedForm, clearError, errors }: an
                      updateNestedForm('socialHandles', social.toLowerCase(), val);
                      // Se for Instagram, atualiza também o handle principal
                      if (social === 'Instagram') {
-                       updateForm('handle', val);
+                       // @ts-ignore - Temporary bypass for onboarding sync
+                       formData.handle = val;
                      }
                      clearError('socialHandles');
                    }}

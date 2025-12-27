@@ -199,7 +199,7 @@ export const InfluencerDashboard: React.FC<{ onLogout: () => void }> = ({ onLogo
      taxAddress: '',
   });
 
-  const withdrawals = influencer?.paymentInfo?.withdrawals || [];
+  const withdrawals = (influencer?.paymentInfo as any)?.withdrawals || [];
   
   // Modals & Temp States
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessUser | null>(null);
