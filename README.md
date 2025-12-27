@@ -8,19 +8,24 @@ This contains everything you need to run your app locally.
 
 View your app in AI Studio: https://ai.studio/apps/drive/1JAFPeOaEdBuk9LHealJiUmCbecoKFvSS
 
-## 🚀 Deploy no GitHub
+## 🚀 Deploy
 
-Este projeto está configurado para deploy automático no **GitHub Pages** usando GitHub Actions.
+O projeto está configurado para deploy tanto no **Vercel** quanto no **GitHub Pages**.
 
-### Passos para Deploy:
+### ⚡ Deploy na Vercel (Recomendado)
 
-1. **Crie um repositório no GitHub** e faça o push do código.
-2. **Configure os Secrets:** No seu repositório GitHub, vá em `Settings > Secrets and variables > Actions` e adicione as seguintes variáveis:
-   - `VITE_SUPABASE_URL`: Sua URL do Supabase.
-   - `VITE_SUPABASE_ANON_KEY`: Sua chave anônima do Supabase.
-   - `GEMINI_API_KEY`: Sua chave da API do Gemini.
-3. **Ative o GitHub Pages:** Vá em `Settings > Pages` e em **Build and deployment > Source**, selecione **GitHub Actions**.
-4. **Push para Main:** Sempre que você fizer um push para a branch `main` ou `master`, o deploy será feito automaticamente.
+1. Conecte seu repositório do GitHub na Vercel.
+2. Adicione as seguintes **Environment Variables** no painel da Vercel:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `GEMINI_API_KEY`
+3. O deploy será feito automaticamente a cada push.
+
+### 🐙 Deploy no GitHub Pages
+
+1. **Configure os Secrets:** No GitHub, vá em `Settings > Secrets and variables > Actions` e adicione as mesmas variáveis acima.
+2. **Ative o Pages:** Em `Settings > Pages`, selecione **GitHub Actions** como fonte.
+3. O deploy automático via GitHub Actions já está configurado no arquivo `.github/workflows/deploy.yml`.
 
 ## 🛠️ Desenvolvimento Local
 
